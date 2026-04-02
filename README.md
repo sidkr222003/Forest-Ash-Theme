@@ -53,7 +53,7 @@ This extension now includes 21 themes:
 
 ## Package Metadata
 
-- `name`: `forest-ash-theme-vscode`
+- `name`: `forest-ash-theme`
 - `displayName`: `Forest Ash Theme`
 - `publisher`: `NK2552003`
 - `version`: `1.2.7`
