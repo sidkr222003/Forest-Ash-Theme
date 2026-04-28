@@ -1,14 +1,30 @@
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
+const languageAutoTheme = require('./languageAutoTheme');
+const personaPresets = require('./personaPresets');
 
-// Store for custom accent colors
+// Store for custom states
 let accentColorStore = {};
+let currentLanguage = null;
+let languageStatusBar = null;
+let moodStatusBar = null;
 
 function activate(context) {
 	console.log('Forest Ash Theme extension activated');
 
-	// Command: Open accent color picker
+	// Initialize status bars
+	languageStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+	languageStatusBar.text = '$(file-code) Language Theme: Off';
+	languageStatusBar.tooltip = 'Language-based accent coloring is disabled';
+	
+	moodStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
+	moodStatusBar.text = '$(smiley) Mood: Off';
+	moodStatusBar.tooltip = 'Mood-based theming is disabled';
+
+	context.subscriptions.push(languageStatusBar, moodStatusBar);
+
+	// Issue #11: Command: Open accent color picker
 	let pickAccentColorCommand = vscode.commands.registerCommand(
 		'forest-ash-theme.pickAccentColor',
 		async function() {
@@ -117,6 +133,201 @@ function activate(context) {
 	context.subscriptions.push(revertAccentColorCommand);
 	context.subscriptions.push(toggleHighContrastCommand);
 	context.subscriptions.push(exportAccentColorCommand);
+
+	// Issue #1: Mood-based theme switching
+	let moodSwitchCommand = vscode.commands.registerCommand(
+		'forest-ash-theme.switchMood',
+		async function() {
+			const moods = ['Happy', 'Focused', 'Tired', 'Creative'];
+			const mood = await vscode.window.showQuickPick(moods, {
+				placeHolder: 'Select a mood'
+			});
+
+			if (mood) {
+				const config = vscode.workspace.getConfiguration('forestAshTheme');
+				await config.update('currentMood', mood.toLowerCase(), vscode.ConfigurationTarget.Global);
+				updateMoodStatusBar(mood);
+				vscode.window.showInformationMessage(
+					`Mood set to ${mood}. This feature is currently in preview.`,
+					'Learn More'
+				).then(selection => {
+					if (selection === 'Learn More') {
+						vscode.env.openExternal(vscode.Uri.parse('https://github.com/sidkr222003/Forest-Ash-Theme#mood-based-theming'));
+					}
+				});
+			}
+		}
+	);
+
+	// Issue #1: Toggle mood-based theming
+	let toggleMoodCommand = vscode.commands.registerCommand(
+		'forest-ash-theme.toggleMoodTheming',
+		async function() {
+			const config = vscode.workspace.getConfiguration('forestAshTheme');
+			const current = config.get('enableMoodTheming', false);
+			await config.update('enableMoodTheming', !current, vscode.ConfigurationTarget.Global);
+			const status = !current ? 'enabled' : 'disabled';
+			updateMoodStatusBar(status === 'enabled' ? config.get('currentMood', 'focused') : 'off');
+			vscode.window.showInformationMessage(`Mood-based theming ${status}`);
+		}
+	);
+
+	// Issue #9: Language auto-theming
+	let toggleLanguageThemeCommand = vscode.commands.registerCommand(
+		'forest-ash-theme.toggleLanguageAutoTheme',
+		async function() {
+			const config = vscode.workspace.getConfiguration('forestAshTheme');
+			const current = config.get('enableLanguageAutoTheme', false);
+			await config.update('enableLanguageAutoTheme', !current, vscode.ConfigurationTarget.Global);
+			const status = !current ? 'enabled' : 'disabled';
+			updateLanguageStatusBar(status === 'enabled' ? currentLanguage : 'off');
+			vscode.window.showInformationMessage(
+				`Language-based auto-theming ${status}. File language colors will ${status === 'enabled' ? '' : 'not '}apply.`
+			);
+		}
+	);
+
+	// Issue #9: Customize language accent intensity
+	let customizeLanguageIntensityCommand = vscode.commands.registerCommand(
+		'forest-ash-theme.customizeLanguageIntensity',
+		async function() {
+			const intensity = await vscode.window.showInputBox({
+				prompt: 'Enter language accent intensity (0.0 - 1.0)',
+				value: '0.3',
+				validateInput: (value) => {
+					const num = parseFloat(value);
+					if (isNaN(num) || num < 0 || num > 1) {
+						return 'Please enter a number between 0 and 1';
+					}
+					return null;
+				}
+			});
+
+			if (intensity) {
+				const config = vscode.workspace.getConfiguration('forestAshTheme');
+				await config.update('languageAccentIntensity', parseFloat(intensity), vscode.ConfigurationTarget.Global);
+				vscode.window.showInformationMessage(`Language accent intensity set to ${intensity}`);
+			}
+		}
+	);
+
+	// Issue #10: Apply developer persona preset
+	let applyPersonaCommand = vscode.commands.registerCommand(
+		'forest-ash-theme.applyPersonaPreset',
+		async function() {
+			const personas = ['Hacker', 'Designer', 'Data Scientist', 'Minimalist', 'Artistic'];
+			const persona = await vscode.window.showQuickPick(personas, {
+				placeHolder: 'Select your developer persona'
+			});
+
+			if (persona) {
+				const config = vscode.workspace.getConfiguration('forestAshTheme');
+				const personaKey = persona.toLowerCase().replace(/\s+/g, '');
+				await config.update('developerPersona', personaKey, vscode.ConfigurationTarget.Global);
+				vscode.window.showInformationMessage(
+					`Developer persona set to ${persona}. Reload VS Code to see recommended themes.`,
+					'Reload'
+				).then(selection => {
+					if (selection === 'Reload') {
+						vscode.commands.executeCommand('workbench.action.reloadWindow');
+					}
+				});
+			}
+		}
+	);
+
+	// Issue #10: Show persona recommendations
+	let showPersonaRecommendationsCommand = vscode.commands.registerCommand(
+		'forest-ash-theme.showPersonaRecommendations',
+		async function() {
+			const personas = personaPresets.getAvailablePersonas();
+			const selected = await vscode.window.showQuickPick(
+				personas.map(p => {
+					const info = personaPresets.getPersonaInfo(p);
+					return {
+						label: info.name,
+						description: info.description,
+						persona: p
+					};
+				}),
+				{ placeHolder: 'Select a persona to learn more' }
+			);
+
+			if (selected) {
+				const info = personaPresets.getPersonaInfo(selected.persona);
+				vscode.window.showInformationMessage(
+					`${info.name}: ${info.description}\n\nRecommended themes: ${info.recommendedThemes.join(', ')}`
+				);
+			}
+		}
+	);
+
+	// Listen for active editor changes (for language auto-theming)
+	let editorChangeDisposable = vscode.window.onDidChangeActiveTextEditor((editor) => {
+		if (editor) {
+			const language = languageAutoTheme.detectLanguage(editor.document.fileName);
+			currentLanguage = language;
+			const config = vscode.workspace.getConfiguration('forestAshTheme');
+			if (config.get('enableLanguageAutoTheme', false)) {
+				updateLanguageStatusBar(language);
+			}
+		}
+	});
+
+	// Listen for configuration changes
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration(event => {
+			if (event.affectsConfiguration('forestAshTheme.customAccentColor') ||
+				event.affectsConfiguration('forestAshTheme.wcagHighContrast') ||
+				event.affectsConfiguration('forestAshTheme.currentMood') ||
+				event.affectsConfiguration('forestAshTheme.enableMoodTheming') ||
+				event.affectsConfiguration('forestAshTheme.enableLanguageAutoTheme') ||
+				event.affectsConfiguration('forestAshTheme.developerPersona')) {
+				vscode.window.showInformationMessage(
+					'Theme settings updated. Reload VS Code to apply changes.',
+					'Reload'
+				).then(selection => {
+					if (selection === 'Reload') {
+						vscode.commands.executeCommand('workbench.action.reloadWindow');
+					}
+				});
+			}
+		})
+	);
+
+	context.subscriptions.push(moodSwitchCommand);
+	context.subscriptions.push(toggleMoodCommand);
+	context.subscriptions.push(toggleLanguageThemeCommand);
+	context.subscriptions.push(customizeLanguageIntensityCommand);
+	context.subscriptions.push(applyPersonaCommand);
+	context.subscriptions.push(showPersonaRecommendationsCommand);
+	context.subscriptions.push(editorChangeDisposable);
+}
+
+function updateLanguageStatusBar(language) {
+	if (!languageStatusBar) return;
+	
+	if (language) {
+		const color = languageAutoTheme.getLanguageColor(language);
+		const colorName = language.charAt(0).toUpperCase() + language.slice(1);
+		languageStatusBar.text = `$(file-code) ${colorName}`;
+		languageStatusBar.tooltip = `Language accent color: ${color}`;
+	} else {
+		languageStatusBar.text = '$(file-code) Language Theme: Off';
+		languageStatusBar.tooltip = 'Language-based accent coloring is disabled';
+	}
+}
+
+function updateMoodStatusBar(mood) {
+	if (!moodStatusBar) return;
+	
+	if (mood && mood !== 'off') {
+		moodStatusBar.text = `$(smiley) Mood: ${mood}`;
+		moodStatusBar.tooltip = `Current mood: ${mood}`;
+	} else {
+		moodStatusBar.text = '$(smiley) Mood: Off';
+		moodStatusBar.tooltip = 'Mood-based theming is disabled';
+	}
 }
 
 async function setAccentColor(color) {

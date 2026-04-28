@@ -23,6 +23,73 @@ All syntax highlighting, selections, tab highlights, and UI elements automatical
 - RGB: `rgb(168, 216, 234)`
 - HSL: `hsl(180, 70%, 79%)`
 
+### 🎭 Mood-Based Theme Switching (Issue #1)
+
+Switch between four mood-based theme variants to match your current mood:
+- **Happy** - Bright, vibrant, energetic palette
+- **Focused** - Neutral, calming palette with high contrast
+- **Tired** - Warm, relaxing palette with softer tones
+- **Creative** - Dynamic, artistic palette with accent variations
+
+**Commands:**
+- **Forest Ash: Switch Mood** - Select your current mood
+- **Forest Ash: Toggle Mood-Based Theming** - Enable/disable mood theming
+
+**Settings:**
+- `forestAshTheme.enableMoodTheming` - Enable mood variants (disabled by default)
+- `forestAshTheme.currentMood` - Choose: happy, focused, tired, creative
+
+### 🗣️ Active File Language Auto-Theming (Issue #9)
+
+Automatically apply subtle accent color shifts based on the programming language of your active file. Provides visual language identification without switching themes.
+
+**Supported Languages & Colors:**
+- TypeScript/JavaScript: Blue
+- Python: Green
+- Rust: Orange
+- Go: Cyan
+- Java: Red
+- C/C++: Purple
+- CSS/SCSS: Pink
+- HTML: Orange-red
+- JSON/YAML: Gray-blue
+- SQL: Teal
+- And more...
+
+**Commands:**
+- **Forest Ash: Toggle Language Auto-Theme** - Enable/disable language-based coloring
+- **Forest Ash: Customize Language Accent Intensity** - Adjust color intensity (0.0-1.0)
+
+**Settings:**
+- `forestAshTheme.enableLanguageAutoTheme` - Enable language theming (disabled by default)
+- `forestAshTheme.languageAccentIntensity` - Intensity of accent (default: 0.3)
+
+### 👨‍💻 Developer Persona Presets (Issue #10)
+
+Choose a developer persona to customize syntax highlighting and color philosophy for your coding style:
+
+1. **Hacker** - High contrast, neon accents
+   - Recommended: Nebula Manga, Kitsune Ink
+   
+2. **Designer** - Refined palette, balanced aesthetics
+   - Recommended: Yoru Paper, Sakura Charcoal
+   
+3. **Data Scientist** - Color-blind friendly, semantic colors
+   - Recommended: Aizome Dusk, Sumi Moon
+   
+4. **Minimalist** - Grayscale with single accent
+   - Recommended: Sumi Moon, Shoji Night
+   
+5. **Artistic** - Vibrant, expressive colors
+   - Recommended: Ronin Lantern, Bamboo Midnight
+
+**Commands:**
+- **Forest Ash: Apply Developer Persona** - Select your persona
+- **Forest Ash: Show Persona Recommendations** - Learn about each persona
+
+**Settings:**
+- `forestAshTheme.developerPersona` - Choose: hacker, designer, datascientist, minimalist, artistic
+
 ### ♿ WCAG High Contrast Variants (Issue #13)
 
 All 21 Forest Ash themes now include WCAG AAA compliant high-contrast variants for enhanced accessibility:
@@ -39,16 +106,25 @@ Available as separate theme options:
 
 ### Configuration
 
-Edit workspace or user settings to enable accessibility features:
+Edit workspace or user settings to configure all features:
 
 ```json
 {
   "forestAshTheme.customAccentColor": "#A8D8EA",
-  "forestAshTheme.wcagHighContrast": false
+  "forestAshTheme.wcagHighContrast": false,
+  "forestAshTheme.enableMoodTheming": false,
+  "forestAshTheme.currentMood": "focused",
+  "forestAshTheme.enableLanguageAutoTheme": false,
+  "forestAshTheme.languageAccentIntensity": 0.3,
+  "forestAshTheme.developerPersona": null
 }
 ```
 
-**Note:** Features are disabled by default. Enable via command palette as needed.
+**Note:** All new features are **disabled by default**. Enable via command palette or settings as needed.
+
+**Feature Status Bar Indicators:**
+- Language indicator: Shows when language auto-theming is active
+- Mood indicator: Shows current mood when mood theming is enabled
 
 ## Theme Collection
 

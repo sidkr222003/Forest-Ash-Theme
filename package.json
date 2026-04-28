@@ -1,8 +1,8 @@
 {
   "name": "forest-ash-theme",
   "displayName": "Forest Ash Theme",
-  "description": "A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes with accent color customization and accessibility variants.",
-  "version": "1.3.0",
+  "description": "A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes with custom colors, accessibility, mood switching, language auto-theming, and developer personas.",
+  "version": "1.4.0",
   "publisher": "NK2552003",
   "main": "./extension.js",
   "engines": {"vscode": "^1.70.0"},
@@ -18,7 +18,13 @@
     "onCommand:forest-ash-theme.customAccentColor",
     "onCommand:forest-ash-theme.revertAccentColor",
     "onCommand:forest-ash-theme.toggleHighContrast",
-    "onCommand:forest-ash-theme.exportAccentColor"
+    "onCommand:forest-ash-theme.exportAccentColor",
+    "onCommand:forest-ash-theme.switchMood",
+    "onCommand:forest-ash-theme.toggleMoodTheming",
+    "onCommand:forest-ash-theme.toggleLanguageAutoTheme",
+    "onCommand:forest-ash-theme.customizeLanguageIntensity",
+    "onCommand:forest-ash-theme.applyPersonaPreset",
+    "onCommand:forest-ash-theme.showPersonaRecommendations"
   ],
   "scripts": {
     "package": "vsce package",
@@ -98,6 +104,36 @@
         "command": "forest-ash-theme.exportAccentColor",
         "title": "Forest Ash: Export Accent Color",
         "category": "Forest Ash Theme"
+      },
+      {
+        "command": "forest-ash-theme.switchMood",
+        "title": "Forest Ash: Switch Mood",
+        "category": "Forest Ash Theme"
+      },
+      {
+        "command": "forest-ash-theme.toggleMoodTheming",
+        "title": "Forest Ash: Toggle Mood-Based Theming",
+        "category": "Forest Ash Theme"
+      },
+      {
+        "command": "forest-ash-theme.toggleLanguageAutoTheme",
+        "title": "Forest Ash: Toggle Language Auto-Theme",
+        "category": "Forest Ash Theme"
+      },
+      {
+        "command": "forest-ash-theme.customizeLanguageIntensity",
+        "title": "Forest Ash: Customize Language Accent Intensity",
+        "category": "Forest Ash Theme"
+      },
+      {
+        "command": "forest-ash-theme.applyPersonaPreset",
+        "title": "Forest Ash: Apply Developer Persona",
+        "category": "Forest Ash Theme"
+      },
+      {
+        "command": "forest-ash-theme.showPersonaRecommendations",
+        "title": "Forest Ash: Show Persona Recommendations",
+        "category": "Forest Ash Theme"
       }
     ],
     "configuration": {
@@ -113,6 +149,35 @@
           "type": "boolean",
           "default": false,
           "description": "Enable WCAG AAA high contrast variant of the current theme. Disabled by default."
+        },
+        "forestAshTheme.enableMoodTheming": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable mood-based theme variants. Choose between Happy, Focused, Tired, and Creative moods. Disabled by default."
+        },
+        "forestAshTheme.currentMood": {
+          "type": "string",
+          "default": "focused",
+          "enum": ["happy", "focused", "tired", "creative"],
+          "description": "Current mood for theme rendering. Only applies when enableMoodTheming is true."
+        },
+        "forestAshTheme.enableLanguageAutoTheme": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic language-based accent color application. Applies subtle color shifts based on active file language. Disabled by default."
+        },
+        "forestAshTheme.languageAccentIntensity": {
+          "type": "number",
+          "default": 0.3,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Intensity of language-based accent color (0.0 - 1.0). Lower values are more subtle."
+        },
+        "forestAshTheme.developerPersona": {
+          "type": "string",
+          "default": null,
+          "enum": ["hacker", "designer", "datascientist", "minimalist", "artistic"],
+          "description": "Selected developer persona preset. Customizes syntax highlighting and color philosophy."
         }
       }
     }
