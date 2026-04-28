@@ -1,17 +1,25 @@
 {
   "name": "forest-ash-theme",
   "displayName": "Forest Ash Theme",
-  "description": "A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes.",
-  "version": "1.2.7",
+  "description": "A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes with accent color customization and accessibility variants.",
+  "version": "1.3.0",
   "publisher": "NK2552003",
+  "main": "./extension.js",
   "engines": {"vscode": "^1.70.0"},
   "categories": ["Themes"],
-  "keywords": ["vscode", "theme", "forest", "ash", "dark", "light", "anime", "eye-friendly", "paper-like"],
+  "keywords": ["vscode", "theme", "forest", "ash", "dark", "light", "anime", "eye-friendly", "paper-like", "customizable", "accessibility"],
   "license": "MIT",
   "icon": "icon.png",
   "repository": {"type": "git", "url": "https://github.com/sidkr222003/Forest-Ash-Theme"},
   "bugs": {"url": "https://github.com/sidkr222003/Forest-Ash-Theme/issues"},
   "homepage": "https://github.com/sidkr222003/Forest-Ash-Theme",
+  "activationEvents": [
+    "onCommand:forest-ash-theme.pickAccentColor",
+    "onCommand:forest-ash-theme.customAccentColor",
+    "onCommand:forest-ash-theme.revertAccentColor",
+    "onCommand:forest-ash-theme.toggleHighContrast",
+    "onCommand:forest-ash-theme.exportAccentColor"
+  ],
   "scripts": {
     "package": "vsce package",
     "publish": "vsce publish",
@@ -42,7 +50,71 @@
       {"label": "Forest Ash Bamboo Midnight Light", "uiTheme": "vs", "path": "themes/forest-ash-bamboo-midnight-light-color-theme.json"},
       {"label": "Forest Ash Nebula Manga Light", "uiTheme": "vs", "path": "themes/forest-ash-nebula-manga-light-color-theme.json"},
       {"label": "Forest Ash Sakura Charcoal Light", "uiTheme": "vs", "path": "themes/forest-ash-sakura-charcoal-light-color-theme.json"},
-      {"label": "Forest Ash Kage Washi Light", "uiTheme": "vs", "path": "themes/forest-ash-kage-washi-light-color-theme.json"}
-    ]
+      {"label": "Forest Ash Kage Washi Light", "uiTheme": "vs", "path": "themes/forest-ash-kage-washi-light-color-theme.json"},
+      {"label": "Forest Ash (WCAG High Contrast)", "uiTheme": "vs-dark", "path": "themes/forest-ash-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Yoru Paper (WCAG High Contrast)", "uiTheme": "vs-dark", "path": "themes/forest-ash-yoru-paper-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Sumi Moon (WCAG High Contrast)", "uiTheme": "vs-dark", "path": "themes/forest-ash-sumi-moon-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Kitsune Ink (WCAG High Contrast)", "uiTheme": "vs-dark", "path": "themes/forest-ash-kitsune-ink-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Shoji Night (WCAG High Contrast)", "uiTheme": "vs-dark", "path": "themes/forest-ash-shoji-night-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Aizome Dusk (WCAG High Contrast)", "uiTheme": "vs-dark", "path": "themes/forest-ash-aizome-dusk-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Ronin Lantern (WCAG High Contrast)", "uiTheme": "vs-dark", "path": "themes/forest-ash-ronin-lantern-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Bamboo Midnight (WCAG High Contrast)", "uiTheme": "vs-dark", "path": "themes/forest-ash-bamboo-midnight-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Nebula Manga (WCAG High Contrast)", "uiTheme": "vs-dark", "path": "themes/forest-ash-nebula-manga-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Sakura Charcoal (WCAG High Contrast)", "uiTheme": "vs-dark", "path": "themes/forest-ash-sakura-charcoal-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Kage Washi (WCAG High Contrast)", "uiTheme": "vs-dark", "path": "themes/forest-ash-kage-washi-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Yoru Paper Light (WCAG High Contrast)", "uiTheme": "vs", "path": "themes/forest-ash-yoru-paper-light-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Sumi Moon Light (WCAG High Contrast)", "uiTheme": "vs", "path": "themes/forest-ash-sumi-moon-light-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Kitsune Ink Light (WCAG High Contrast)", "uiTheme": "vs", "path": "themes/forest-ash-kitsune-ink-light-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Shoji Night Light (WCAG High Contrast)", "uiTheme": "vs", "path": "themes/forest-ash-shoji-night-light-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Aizome Dusk Light (WCAG High Contrast)", "uiTheme": "vs", "path": "themes/forest-ash-aizome-dusk-light-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Ronin Lantern Light (WCAG High Contrast)", "uiTheme": "vs", "path": "themes/forest-ash-ronin-lantern-light-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Bamboo Midnight Light (WCAG High Contrast)", "uiTheme": "vs", "path": "themes/forest-ash-bamboo-midnight-light-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Nebula Manga Light (WCAG High Contrast)", "uiTheme": "vs", "path": "themes/forest-ash-nebula-manga-light-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Sakura Charcoal Light (WCAG High Contrast)", "uiTheme": "vs", "path": "themes/forest-ash-sakura-charcoal-light-wcag-hc-color-theme.json"},
+      {"label": "Forest Ash Kage Washi Light (WCAG High Contrast)", "uiTheme": "vs", "path": "themes/forest-ash-kage-washi-light-wcag-hc-color-theme.json"}
+    ],
+    "commands": [
+      {
+        "command": "forest-ash-theme.pickAccentColor",
+        "title": "Forest Ash: Pick Accent Color",
+        "category": "Forest Ash Theme"
+      },
+      {
+        "command": "forest-ash-theme.customAccentColor",
+        "title": "Forest Ash: Custom Accent Color",
+        "category": "Forest Ash Theme"
+      },
+      {
+        "command": "forest-ash-theme.revertAccentColor",
+        "title": "Forest Ash: Revert Accent Color",
+        "category": "Forest Ash Theme"
+      },
+      {
+        "command": "forest-ash-theme.toggleHighContrast",
+        "title": "Forest Ash: Toggle WCAG High Contrast",
+        "category": "Forest Ash Theme"
+      },
+      {
+        "command": "forest-ash-theme.exportAccentColor",
+        "title": "Forest Ash: Export Accent Color",
+        "category": "Forest Ash Theme"
+      }
+    ],
+    "configuration": {
+      "title": "Forest Ash Theme",
+      "properties": {
+        "forestAshTheme.customAccentColor": {
+          "type": "string",
+          "default": null,
+          "description": "Custom accent color for all Forest Ash themes. Accepts hex (#RRGGBB), RGB (rgb(r,g,b)), or HSL (hsl(h,s%,l%)) formats.",
+          "examples": ["#A8D8EA", "rgb(168, 216, 234)", "hsl(180, 70%, 79%)"]
+        },
+        "forestAshTheme.wcagHighContrast": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable WCAG AAA high contrast variant of the current theme. Disabled by default."
+        }
+      }
+    }
   }
 }
