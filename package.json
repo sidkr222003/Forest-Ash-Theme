@@ -24,7 +24,7 @@
     "custom"
   ],
   "license": "MIT",
-  "icon": "icon.png",
+  "icon": "resources/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/sidkr222003/Forest-Ash-Theme"
