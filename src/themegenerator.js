@@ -3,38 +3,12 @@
 /**
  * themeGenerator.js  –  Forest Ash Dynamic Theme Generator
  * ──────────────────────────────────────────────────────────
- *
- * DESIGN PRINCIPLE
- * ════════════════
- * We extract hue, saturation AND lightness from the user's chosen colour.
- *
- * All three components influence the output:
- *   • Hue        → drives the base colour family & complementary offsets
- *   • Saturation → scales how vivid or muted the entire generated palette is
- *   • Lightness  → shifts the tonal "weight" of backgrounds and foregrounds,
- *                  and nudges syntax-token lightness for headroom / contrast
- *
- * This guarantees:
- *   (a) Two different hex inputs ALWAYS produce different themes.
- *   (b) Readable contrast is preserved for both dark and light variants.
- *   (c) The Forest Ash "split-complementary triad" feel is retained.
- *
- * Hue offsets (unchanged from Forest Ash spec):
- *   keyword  → H + 0°     (base hue family)
- *   string   → H + 40°    (warm amber-ochre)
- *   function → H + 200°   (cool blue)
- *   type     → H + 290°   (muted rose/violet)
- *   number   → H + 55°    (warm gold)
  */
 
 const chroma = require('chroma-js');
 
 // ─── low-level helpers ────────────────────────────────────────────────────────
 
-/**
- * Build a colour from hue°, saturation (0-100), lightness (0-100).
- * Hue wraps, S and L are clamped automatically.
- */
 function hsl(h, s, l) {
   h = ((h % 360) + 360) % 360;
   s = Math.max(0, Math.min(100, s)) / 100;
@@ -72,51 +46,19 @@ function clamp(v, lo, hi) {
 
 // ─── Forest Ash palette builder ───────────────────────────────────────────────
 
-/**
- * Builds the full palette from a user colour and variant flag.
- *
- * Key insight
- * ───────────
- * sF  (saturation factor, 0.6–1.4) – derived from input saturation.
- *      A muted (#4a4a52) input lowers sF; a vivid (#ff4400) input raises it.
- *      Applied multiplicatively to every saturation value so the whole theme
- *      breathes more or less colour.
- *
- * lShift (lightness shift, −6 to +6) – derived from input lightness.
- *      A very dark input (#0a0a14) pushes lShift negative, making BG slots
- *      even darker and giving tokens more breathing room.
- *      A very light input (#e8f0ff) pushes lShift positive.
- *      Applied additively to token lightness values (BG/FG slots are
- *      separately handled so contrast is never lost).
- *
- * hueBias (0–20°) – extra hue rotation derived from saturation.
- *      Saturated colours shift the complementary offsets slightly,
- *      making the triad feel unique without breaking harmony.
- */
 function buildPalette(baseHex, isDark) {
   const { h: H, s: S, l: L } = hslOf(baseHex);
 
   // ── Derived influence factors ────────────────────────────────────────────
-  // sF: 0.60 at S=0, 1.00 at S=50, 1.40 at S=100
   const sF = clamp(0.60 + (S / 100) * 0.80, 0.60, 1.40);
-
-  // lShift: −6 at L=0, 0 at L=50, +6 at L=100
   const lShift = clamp(((L - 50) / 50) * 6, -6, 6);
-
-  // hueBias: 0 at S=0, up to 20° at S=100 (adds individuality to triad)
   const hueBias = (S / 100) * 20;
 
-  // Convenience: scaled saturation helper
-  // Multiplies base saturation by sF, then clamps to [0,100]
   const ss = (base) => clamp(base * sF, 0, 100);
-
-  // Convenience: shifted lightness helper (for token slots only)
   const sl = (base) => clamp(base + lShift * 0.5, 0, 100);
 
   if (isDark) {
-    // ── backgrounds ───────────────────────────────────────────────────────
-    // BG values get a tiny lShift to reflect input darkness, clamped tightly
-    // so they never become unreadably dark or wash out.
+    // ── backgrounds ──────────────────────────────────────────────────────
     const bgL = (base) => clamp(base + lShift * 0.3, 6, 22);
 
     const bg0 = hsl(H, ss(8), bgL(10));
@@ -126,7 +68,6 @@ function buildPalette(baseHex, isDark) {
     const bg4 = hsl(H, ss(9), bgL(14));
 
     // ── foregrounds ───────────────────────────────────────────────────────
-    // FG values get inverse lShift so contrast is maintained.
     const fgL = (base) => clamp(base - lShift * 0.2, 38, 92);
 
     const fg0 = hsl(H, ss(9), fgL(82));
@@ -138,24 +79,24 @@ function buildPalette(baseHex, isDark) {
     const accentBright = hsl(H, ss(50), sl(68));
     const accentDim = hsl(H, ss(38), sl(55));
     const accentFaint = alpha(accent, 0.15);
-    // buttonAccent: hard-capped lightness so white text always has contrast.
-    // accentBright can be pale (used for text/highlights), but buttons/badges
-    // must stay dark enough for #ffffff to read clearly on top.
     const buttonAccent = hsl(H, clamp(ss(52), 35, 100), clamp(sl(40), 28, 48));
 
-    // ── syntax tokens (split-complementary triad + hueBias) ───────────────
+    // ─ syntax tokens ───────────────────────────────────────────────────────
     const synKeyword = hsl(H, ss(28), sl(60));
     const synFunc = hsl(H + 200 + hueBias, ss(28), sl(62));
     const synString = hsl(H + 40 + hueBias, ss(48), sl(58));
     const synType = hsl(H + 290 - hueBias, ss(28), sl(64));
     const synNumber = hsl(H + 55 + hueBias, ss(42), sl(64));
-    const synComment = hsl(H, ss(12),55);
-    const synVar = hsl(H, ss(14), sl(76));  // bump saturation so it's not grey
-    const synPunct = hsl(H, ss(12), sl(65));  // slight sat + lightness bump
+    
+    // FIX: Comments are now significantly lighter and slightly more saturated
+    const synComment = hsl(H, clamp(ss(35), 30, 100), clamp(75 + lShift * 0.2, 68, 85));
+    
+    const synVar = hsl(H, ss(14), sl(76));
+    const synPunct = hsl(H, ss(12), sl(65));
     const synTag = hsl(H + 15 + hueBias, ss(32), sl(62));
     const synAttr = hsl(H - 15 - hueBias, ss(30), sl(64));
 
-    // ── terminal ANSI ─────────────────────────────────────────────────────
+    // ── terminal ANSI ────────────────────────────────────────────────────
     const termBlack = bg1;
     const termRed = hsl(H + 0, ss(55), sl(58));
     const termGreen = hsl(H + 100, ss(45), sl(56));
@@ -178,12 +119,10 @@ function buildPalette(baseHex, isDark) {
 
   } else {
     // ══════════════════════════════════════════════════════
-    //  LIGHT variant  (paper-like Forest Ash style)
+    //  LIGHT variant
     // ══════════════════════════════════════════════════════
 
-    // BG: higher L base; lShift is inverted (dark input → slightly darker bg)
     const bgL = (base) => clamp(base - lShift * 0.25, 82, 98);
-    // FG: lShift makes fg slightly darker for dark inputs (more contrast)
     const fgL = (base) => clamp(base - lShift * 0.20, 12, 60);
 
     const bg0 = hsl(H, ss(14), bgL(96));
@@ -200,16 +139,15 @@ function buildPalette(baseHex, isDark) {
     const accentBright = hsl(H, ss(55), sl(38));
     const accentDim = hsl(H, ss(42), sl(48));
     const accentFaint = alpha(accent, 0.12);
-    // Light mode: accentBright is already dark enough (L~38) for white text
     const buttonAccent = accentBright;
 
-    // Syntax: lightness is pushed down for light variant (dark on bright bg)
+    // Syntax: lightness is pushed down for light variant
     const synKeyword = hsl(H, ss(38), sl(38));
     const synFunc = hsl(H + 200 + hueBias, ss(38), sl(38));
     const synString = hsl(H + 40 + hueBias, ss(52), sl(36));
     const synType = hsl(H + 290 - hueBias, ss(35), sl(40));
     const synNumber = hsl(H + 55 + hueBias, ss(46), sl(36));
-    const synComment = hsl(H, ss(12), sl(56));
+    const synComment = hsl(H, ss(12), sl(55));
     const synVar = hsl(H, ss(16), sl(24));
     const synPunct = hsl(H, ss(12), sl(42));
     const synTag = hsl(H + 15 + hueBias, ss(40), sl(38));
@@ -237,7 +175,7 @@ function buildPalette(baseHex, isDark) {
   }
 }
 
-// ─── VS Code workbench colors ─────────────────────────────────────────────────
+// ─── VS Code workbench colors ────────────────────────────────────────────────
 
 function buildColors(p) {
   const {
@@ -258,7 +196,7 @@ function buildColors(p) {
 
   return {
     // ── Base ──────────────────────────────────────────────────────────────
-    'focusBorder': alpha(accent, 0.70),
+    'focusBorder': '#00000000', // FIX: Removed focus border box
     'foreground': fg0,
     'disabledForeground': fg2,
     'widget.shadow': shadow,
@@ -269,57 +207,57 @@ function buildColors(p) {
 
     // ── Text ──────────────────────────────────────────────────────────────
     'textBlockQuote.background': bg2,
-    'textBlockQuote.border': accent,
+    'textBlockQuote.border': '#00000000',
     'textCodeBlock.background': bg2,
     'textLink.activeForeground': accentBright,
     'textLink.foreground': accent,
     'textPreformat.foreground': fg0,
-    'textSeparator.foreground': border,
+    'textSeparator.foreground': '#00000000',
 
-    // ── Toolbar ───────────────────────────────────────────────────────────
+    // ── Toolbar ──────────────────────────────────────────────────────────
     'toolbar.hoverBackground': alpha(accent, 0.10),
     'toolbar.activeBackground': alpha(accent, 0.18),
 
-    // ── Button ────────────────────────────────────────────────────────────
+    // ── Button ───────────────────────────────────────────────────────────
     'button.background': buttonAccent,
     'button.foreground': '#ffffff',
     'button.hoverBackground': accentDim,
     'button.secondaryBackground': bg3,
     'button.secondaryForeground': fg0,
     'button.secondaryHoverBackground': bg2,
-    'button.border': alpha(accent, 0.40),
-    'button.separator': alpha('#ffffff', 0.30),
+    'button.border': '#00000000',
+    'button.separator': '#00000000',
 
     // ── Checkbox ──────────────────────────────────────────────────────────
     'checkbox.background': inputBg,
     'checkbox.foreground': fg0,
-    'checkbox.border': border,
+    'checkbox.border': '#00000000',
     'checkbox.selectBackground': alpha(accent, 0.20),
-    'checkbox.selectBorder': accent,
+    'checkbox.selectBorder': '#00000000',
 
     // ── Dropdown ──────────────────────────────────────────────────────────
     'dropdown.background': dropBg,
     'dropdown.listBackground': dropBg,
-    'dropdown.border': border,
+    'dropdown.border': '#00000000',
     'dropdown.foreground': fg0,
 
     // ── Input ─────────────────────────────────────────────────────────────
     'input.background': inputBg,
-    'input.border': border,
+    'input.border': '#00000000',
     'input.foreground': fg0,
     'input.placeholderForeground': fg2,
     'inputOption.activeBackground': alpha(accent, 0.22),
-    'inputOption.activeBorder': accent,
+    'inputOption.activeBorder': '#00000000',
     'inputOption.activeForeground': accentBright,
     'inputOption.hoverBackground': alpha(accent, 0.12),
     'inputValidation.errorBackground': alpha(termRed, isDark ? 0.22 : 0.10),
-    'inputValidation.errorBorder': termRed,
+    'inputValidation.errorBorder': '#00000000',
     'inputValidation.errorForeground': fg0,
     'inputValidation.warningBackground': alpha(termYellow, 0.18),
-    'inputValidation.warningBorder': termYellow,
+    'inputValidation.warningBorder': '#00000000',
     'inputValidation.warningForeground': fg0,
     'inputValidation.infoBackground': alpha(accent, 0.18),
-    'inputValidation.infoBorder': accent,
+    'inputValidation.infoBorder': '#00000000',
     'inputValidation.infoForeground': fg0,
 
     // ── Scrollbar ─────────────────────────────────────────────────────────
@@ -340,7 +278,7 @@ function buildColors(p) {
     'list.dropBackground': alpha(accent, 0.14),
     'list.focusBackground': alpha(accent, 0.18),
     'list.focusForeground': fg0,
-    'list.focusOutline': alpha(accent, 0.40),
+    'list.focusOutline': '#00000000', // FIX: Removed focus outline box
     'list.highlightForeground': accentBright,
     'list.hoverBackground': alpha(accent, 0.10),
     'list.hoverForeground': fg0,
@@ -348,45 +286,43 @@ function buildColors(p) {
     'list.inactiveSelectionForeground': fg0,
     'list.inactiveSelectionIconForeground': fg1,
     'list.inactiveFocusBackground': alpha(accent, 0.10),
-    'list.inactiveFocusOutline': alpha(accent, 0.25),
+    'list.inactiveFocusOutline': '#00000000',
     'list.errorForeground': termRed,
     'list.warningForeground': termYellow,
     'list.deemphasizedForeground': fg2,
     'list.filterMatchBackground': alpha(accent, 0.18),
-    'list.filterMatchBorder': alpha(accent, 0.40),
+    'list.filterMatchBorder': '#00000000',
     'listFilterWidget.background': dropBg,
-    'listFilterWidget.outline': accent,
-    'listFilterWidget.noMatchesOutline': termRed,
+    'listFilterWidget.outline': '#00000000',
+    'listFilterWidget.noMatchesOutline': '#00000000',
     'listFilterWidget.shadow': shadow,
     'tree.indentGuidesStroke': alpha(accent, 0.28),
-    'tree.tableColumnsBorder': border,
+    'tree.tableColumnsBorder': '#00000000',
     'tree.tableOddRowsBackground': alpha(accent, 0.04),
 
     // ── Activity Bar ──────────────────────────────────────────────────────
     'activityBar.background': bg1,
-    'activityBar.border': border,
     'activityBar.foreground': fg0,
     'activityBar.inactiveForeground': fg2,
-    'activityBar.dropBorder': accent,
+    'activityBar.dropBorder': '#00000000',
     'activityBar.activeBackground': alpha(accent, 0.10),
-    'activityBar.activeBorder': accent,
+    'activityBar.activeBorder': '#00000000',
     'activityBar.activeFocusBorder': '#00000000',
     'activityBarBadge.background': buttonAccent,
     'activityBarBadge.foreground': '#ffffff',
     'activityBarTop.foreground': fg0,
-    'activityBarTop.activeBorder': accent,
+    'activityBarTop.activeBorder': '#00000000',
     'activityBarTop.inactiveForeground': fg2,
-    'activityBarTop.dropBorder': accent,
+    'activityBarTop.dropBorder': '#00000000',
 
     // ── Side Bar ──────────────────────────────────────────────────────────
     'sideBar.background': bg1,
     'sideBar.foreground': fg0,
-    'sideBar.border': border,
     'sideBar.dropBackground': alpha(accent, 0.12),
     'sideBarTitle.foreground': fg0,
     'sideBarSectionHeader.background': bg2,
     'sideBarSectionHeader.foreground': fg1,
-    'sideBarSectionHeader.border': border,
+    'sideBarSectionHeader.border': '#00000000',
 
     // ── Minimap ───────────────────────────────────────────────────────────
     'minimap.findMatchHighlight': alpha(accentBright, 0.60),
@@ -403,38 +339,36 @@ function buildColors(p) {
     'editorGroup.border': '#00000000',
     'editorGroup.dropBackground': alpha(accent, 0.12),
     'editorGroup.emptyBackground': bg0,
-    'editorGroup.focusedEmptyBorder': accent,
+    'editorGroup.focusedEmptyBorder': '#00000000',
     'editorGroup.dropIntoPromptForeground': fg0,
     'editorGroup.dropIntoPromptBackground': bg2,
-    'editorGroup.dropIntoPromptBorder': border,
+    'editorGroup.dropIntoPromptBorder': '#00000000',
     'editorGroupHeader.tabsBackground': bg1,
-    'editorGroupHeader.tabsBorder': '#00000000',
     'editorGroupHeader.noTabsBackground': bg1,
-    'editorGroupHeader.border': border,
+    'editorGroupHeader.border': '#00000000',
     'tab.activeBackground': bg0,
     'tab.activeForeground': fg0,
-    'tab.border': border,
-    'tab.activeBorder': '#00000000', // transparent — prevents bottom border bleed
-    'tab.activeBorderTop': '#00000000', // Forest Ash signature top accent bar
+    'tab.activeBorder': accent, // Bottom bar only
+    'tab.activeBorderTop': '#00000000', 
     'tab.inactiveBackground': bg1,
     'tab.inactiveForeground': fg2,
     'tab.hoverBackground': alpha(accent, 0.08),
     'tab.hoverForeground': fg1,
-    'tab.hoverBorder': '#00000000', // transparent — no border on hover
+    'tab.hoverBorder': '#00000000', 
     'tab.unfocusedActiveBackground': bg1,
     'tab.unfocusedActiveForeground': fg1,
-    'tab.unfocusedActiveBorder': '#00000000', // transparent — prevents unfocused bottom border
-    'tab.unfocusedActiveBorderTop': alpha(accent, 0.50),
+    'tab.unfocusedActiveBorder': '#00000000', 
+    'tab.unfocusedActiveBorderTop': '#00000000',
     'tab.unfocusedInactiveBackground': bg1,
     'tab.unfocusedInactiveForeground': fg2,
     'tab.unfocusedHoverBackground': alpha(accent, 0.06),
     'tab.unfocusedHoverForeground': fg2,
-    'tab.unfocusedHoverBorder': alpha(accent, 0.50),
-    'tab.lastPinnedBorder': alpha(accent, 0.40),
-    'tab.selectedBorderTop': accent,
-    'tab.dragAndDropBorder': accentBright,
+    'tab.unfocusedHoverBorder': '#00000000',
+    'tab.lastPinnedBorder': '#00000000',
+    'tab.selectedBorderTop': '#00000000',
+    'tab.dragAndDropBorder': '#00000000',
 
-    // ── Editor ────────────────────────────────────────────────────────────
+    // ─ Editor ────────────────────────────────────────────────────────────
     'editor.background': bg0,
     'editor.foreground': fg0,
     'editorLineNumber.foreground': fg2,
@@ -446,27 +380,27 @@ function buildColors(p) {
     'editor.selectionForeground': fg0,
     'editor.inactiveSelectionBackground': alpha(accent, isDark ? 0.14 : 0.10),
     'editor.selectionHighlightBackground': alpha(accent, 0.14),
-    'editor.selectionHighlightBorder': alpha(accent, 0.30),
+    'editor.selectionHighlightBorder': '#00000000',
     'editor.wordHighlightBackground': alpha(accent, 0.16),
-    'editor.wordHighlightBorder': alpha(accent, 0.32),
+    'editor.wordHighlightBorder': '#00000000',
     'editor.wordHighlightStrongBackground': alpha(accent, 0.26),
-    'editor.wordHighlightStrongBorder': alpha(accent, 0.45),
+    'editor.wordHighlightStrongBorder': '#00000000',
     'editor.wordHighlightTextBackground': alpha(accent, 0.10),
-    'editor.wordHighlightTextBorder': alpha(accent, 0.25),
+    'editor.wordHighlightTextBorder': '#00000000',
     'editor.findMatchBackground': alpha(accentBright, 0.38),
-    'editor.findMatchBorder': accentBright,
+    'editor.findMatchBorder': '#00000000',
     'editor.findMatchHighlightBackground': alpha(accent, 0.18),
-    'editor.findMatchHighlightBorder': alpha(accent, 0.35),
+    'editor.findMatchHighlightBorder': '#00000000',
     'editor.findRangeHighlightBackground': alpha(accent, 0.08),
-    'editor.findRangeHighlightBorder': alpha(accent, 0.20),
+    'editor.findRangeHighlightBorder': '#00000000',
     'editor.hoverHighlightBackground': alpha(accent, 0.12),
     'editor.lineHighlightBackground': bg4,
-    'editor.lineHighlightBorder': '#00000000', // transparent — bg4 highlight is enough
+    'editor.lineHighlightBorder': '#00000000', 
     'editorLink.activeForeground': accentBright,
     'editor.rangeHighlightBackground': alpha(accent, 0.08),
-    'editor.rangeHighlightBorder': alpha(accent, 0.20),
+    'editor.rangeHighlightBorder': '#00000000',
     'editor.symbolHighlightBackground': alpha(accent, 0.14),
-    'editor.symbolHighlightBorder': alpha(accent, 0.30),
+    'editor.symbolHighlightBorder': '#00000000',
     'editorWhitespace.foreground': alpha(fg2, 0.40),
     'editorIndentGuide.background': alpha(fg2, 0.18),
     'editorIndentGuide.background1': alpha(fg2, 0.18),
@@ -478,13 +412,13 @@ function buildColors(p) {
     'editorMultiCursor.secondary.foreground': accent,
     'editorMultiCursor.secondary.background': bg0,
 
-    // ── Editor Widgets ────────────────────────────────────────────────────
+    // ─ Editor Widgets ────────────────────────────────────────────────────
     'editorWidget.background': bg2,
-    'editorWidget.border': border,
+    'editorWidget.border': '#00000000',
     'editorWidget.foreground': fg0,
-    'editorWidget.resizeBorder': accent,
+    'editorWidget.resizeBorder': '#00000000',
     'editorSuggestWidget.background': bg2,
-    'editorSuggestWidget.border': border,
+    'editorSuggestWidget.border': '#00000000',
     'editorSuggestWidget.foreground': fg0,
     'editorSuggestWidget.focusHighlightForeground': accentBright,
     'editorSuggestWidget.highlightForeground': accentBright,
@@ -493,7 +427,7 @@ function buildColors(p) {
     'editorSuggestWidget.selectedIconForeground': accentBright,
     'editorSuggestWidgetStatus.foreground': fg2,
     'editorHoverWidget.background': bg2,
-    'editorHoverWidget.border': border,
+    'editorHoverWidget.border': '#00000000',
     'editorHoverWidget.foreground': fg0,
     'editorHoverWidget.highlightForeground': accentBright,
     'editorHoverWidget.statusBarBackground': bg3,
@@ -510,9 +444,9 @@ function buildColors(p) {
 
     // ── Diff Editor ───────────────────────────────────────────────────────
     'diffEditor.insertedTextBackground': alpha(termGreen, 0.12),
-    'diffEditor.insertedTextBorder': alpha(termGreen, 0.25),
+    'diffEditor.insertedTextBorder': '#00000000',
     'diffEditor.removedTextBackground': alpha(termRed, 0.12),
-    'diffEditor.removedTextBorder': alpha(termRed, 0.25),
+    'diffEditor.removedTextBorder': '#00000000',
     'diffEditor.insertedLineBackground': alpha(termGreen, 0.07),
     'diffEditor.removedLineBackground': alpha(termRed, 0.07),
     'diffEditor.diagonalFill': alpha(termBlue, 0.30),
@@ -525,10 +459,10 @@ function buildColors(p) {
     'diffEditorOverview.removedForeground': alpha(termRed, 0.70),
 
     // ── Peek View ─────────────────────────────────────────────────────────
-    'peekView.border': accentDim,
+    'peekView.border': '#00000000',
     'peekViewEditor.background': bg0,
     'peekViewEditor.matchHighlightBackground': alpha(accent, 0.26),
-    'peekViewEditor.matchHighlightBorder': alpha(accent, 0.45),
+    'peekViewEditor.matchHighlightBorder': '#00000000',
     'peekViewEditorGutter.background': bg0,
     'peekViewEditorStickyScroll.background': bg1,
     'peekViewResult.background': bg2,
@@ -541,23 +475,22 @@ function buildColors(p) {
     'peekViewTitleDescription.foreground': fg1,
     'peekViewTitleLabel.foreground': fg0,
 
-    // ── Merge ─────────────────────────────────────────────────────────────
+    // ─ Merge ─────────────────────────────────────────────────────────────
     'merge.currentHeaderBackground': alpha(termGreen, 0.20),
     'merge.currentContentBackground': alpha(termGreen, 0.08),
     'merge.incomingHeaderBackground': alpha(termBlue, 0.20),
     'merge.incomingContentBackground': alpha(termBlue, 0.08),
-    'merge.border': border,
+    'merge.border': '#00000000',
     'merge.commonHeaderBackground': alpha(accent, 0.18),
     'merge.commonContentBackground': alpha(accent, 0.08),
 
     // ── Panel ─────────────────────────────────────────────────────────────
     'panel.background': bg1,
-    'panel.border': '#00000000',
-    'panel.dropBorder': accent,
-    'panelTitle.activeBorder': accent, // transparent — no border on active title
+    'panel.dropBorder': '#00000000',
+    'panelTitle.activeBorder': '#00000000', 
     'panelTitle.activeForeground': fg0,
     'panelTitle.inactiveForeground': fg2,
-    'panelInput.border': border,
+    'panelInput.border': '#00000000',
     'panelSection.border': '#00000000',
     'panelSection.dropBackground': alpha(accent, 0.12),
     'panelSectionHeader.background': bg2,
@@ -567,18 +500,18 @@ function buildColors(p) {
     // ── Status Bar ────────────────────────────────────────────────────────
     'statusBar.background': bg1,
     'statusBar.foreground': fg0,
-    'statusBar.border': border,
-    'statusBar.focusBorder': alpha(accent, 0.60),
+    'statusBar.border': '#00000000',
+    'statusBar.focusBorder': '#00000000',
     'statusBar.debuggingBackground': accentDim,
     'statusBar.debuggingForeground': '#ffffff',
-    'statusBar.debuggingBorder': alpha(accentDim, 0.50),
+    'statusBar.debuggingBorder': '#00000000',
     'statusBar.noFolderBackground': bg2,
     'statusBar.noFolderForeground': fg0,
-    'statusBar.noFolderBorder': border,
+    'statusBar.noFolderBorder': '#00000000',
     'statusBarItem.activeBackground': alpha(accent, 0.28),
     'statusBarItem.hoverBackground': alpha(accent, 0.14),
     'statusBarItem.hoverForeground': fg0,
-    'statusBarItem.focusBorder': alpha(accent, 0.60),
+    'statusBarItem.focusBorder': '#00000000',
     'statusBarItem.prominentBackground': buttonAccent,
     'statusBarItem.prominentForeground': '#ffffff',
     'statusBarItem.prominentHoverForeground': '#ffffff',
@@ -600,41 +533,41 @@ function buildColors(p) {
     'statusBarItem.offlineHoverBackground': alpha(fg2, 0.28),
     'statusBarItem.offlineHoverForeground': fg0,
 
-    // ── Title Bar ─────────────────────────────────────────────────────────
+    // ── Title Bar ───────────────────────────────────────────────────────
     'titleBar.activeBackground': bg1,
     'titleBar.activeForeground': fg0,
-    'titleBar.border': border,
+    'titleBar.border': '#00000000',
     'titleBar.inactiveBackground': bg1,
     'titleBar.inactiveForeground': fg2,
     'menubar.selectionForeground': fg0,
     'menubar.selectionBackground': alpha(accent, 0.14),
-    'menubar.selectionBorder': alpha(accent, 0.28),
+    'menubar.selectionBorder': '#00000000',
 
     // ── Menu ──────────────────────────────────────────────────────────────
     'menu.background': bg2,
     'menu.foreground': fg0,
-    'menu.border': border,
+    'menu.border': '#00000000',
     'menu.selectionBackground': alpha(accent, 0.22),
     'menu.selectionForeground': fg0,
-    'menu.selectionBorder': alpha(accent, 0.35),
-    'menu.separatorBackground': border,
+    'menu.selectionBorder': '#00000000',
+    'menu.separatorBackground': '#00000000',
     'menu.shadow': shadow,
 
-    // ── Notifications ─────────────────────────────────────────────────────
+    // ── Notifications ────────────────────────────────────────────────────
     'notifications.background': bg2,
-    'notifications.border': border,
+    'notifications.border': '#00000000',
     'notifications.foreground': fg0,
-    'notificationCenter.border': border,
+    'notificationCenter.border': '#00000000',
     'notificationCenterHeader.foreground': fg0,
     'notificationCenterHeader.background': bg3,
-    'notificationToast.border': border,
+    'notificationToast.border': '#00000000',
     'notificationsErrorIcon.foreground': termRed,
     'notificationsWarningIcon.foreground': termYellow,
     'notificationsInfoIcon.foreground': accent,
     'notificationLink.foreground': accentBright,
 
     // ── Quick Pick ────────────────────────────────────────────────────────
-    'pickerGroup.border': border,
+    'pickerGroup.border': '#00000000',
     'pickerGroup.foreground': accentBright,
     'quickInput.background': bg2,
     'quickInput.foreground': fg0,
@@ -645,8 +578,8 @@ function buildColors(p) {
 
     // ── Keybinding Label ──────────────────────────────────────────────────
     'keybindingLabel.background': alpha(accent, 0.12),
-    'keybindingLabel.border': border,
-    'keybindingLabel.bottomBorder': alpha(accent, 0.45),
+    'keybindingLabel.border': '#00000000',
+    'keybindingLabel.bottomBorder': '#00000000',
     'keybindingLabel.foreground': fg0,
     'keybindingTable.headerBackground': bg2,
     'keybindingTable.rowsBackground': alpha(accent, 0.04),
@@ -658,7 +591,7 @@ function buildColors(p) {
     'breadcrumb.foreground': fg1,
     'breadcrumbPicker.background': bg2,
 
-    // ── Symbol Icons ──────────────────────────────────────────────────────
+    // ── Symbol Icons ─────────────────────────────────────────────────────
     'symbolIcon.arrayForeground': p.synVar,
     'symbolIcon.booleanForeground': p.synNumber,
     'symbolIcon.classForeground': synType,
@@ -706,21 +639,20 @@ function buildColors(p) {
     'gitDecoration.untrackedResourceForeground': termGreen,
 
     // ── Source Control ────────────────────────────────────────────────────
-    'scm.providerBorder': border,
+    'scm.providerBorder': '#00000000',
 
-    // ── Terminal ──────────────────────────────────────────────────────────
+    // ── Terminal ─────────────────────────────────────────────────────────
     'terminal.background': bg0,
-    'terminal.border': border,
     'terminal.foreground': fg0,
     'terminal.dropBackground': alpha(accent, 0.10),
     'terminal.findMatchBackground': alpha(accentBright, 0.40),
-    'terminal.findMatchBorder': accent,
+    'terminal.findMatchBorder': '#00000000',
     'terminal.findMatchHighlightBackground': alpha(accent, 0.20),
-    'terminal.findMatchHighlightBorder': alpha(accent, 0.35),
+    'terminal.findMatchHighlightBorder': '#00000000',
     'terminal.inactiveSelectionBackground': alpha(accent, 0.14),
     'terminal.selectionBackground': alpha(accent, 0.28),
     'terminal.selectionForeground': fg0,
-    'terminal.tab.activeBorder': accent,
+    'terminal.tab.activeBorder': '#00000000', // FIX: Removed terminal tab border
     'terminal.ansiBlack': termBlack,
     'terminal.ansiBrightBlack': fg2,
     'terminal.ansiRed': termRed,
@@ -748,9 +680,9 @@ function buildColors(p) {
     'terminalStickyScroll.background': bg1,
     'terminalStickyScrollHover.background': bg2,
 
-    // ── Debug ─────────────────────────────────────────────────────────────
+    // ── Debug ────────────────────────────────────────────────────────────
     'debugToolBar.background': bg2,
-    'debugToolBar.border': border,
+    'debugToolBar.border': '#00000000',
     'editor.stackFrameHighlightBackground': alpha(termYellow, 0.14),
     'editor.focusedStackFrameHighlightBackground': alpha(termGreen, 0.14),
     'debugView.exceptionLabelBackground': alpha(termRed, 0.20),
@@ -785,7 +717,7 @@ function buildColors(p) {
     'debugIcon.continueForeground': termGreen,
     'debugIcon.stepBackForeground': accentDim,
 
-    // ── Testing ───────────────────────────────────────────────────────────
+    // ── Testing ──────────────────────────────────────────────────────────
     'testing.iconFailed': termRed,
     'testing.iconErrored': termRed,
     'testing.iconPassed': termGreen,
@@ -793,7 +725,7 @@ function buildColors(p) {
     'testing.iconQueued': termYellow,
     'testing.iconUnset': fg2,
     'testing.iconSkipped': accentDim,
-    'testing.peekBorder': accentDim,
+    'testing.peekBorder': '#00000000',
     'testing.peekHeaderBackground': bg2,
     'testing.message.error.decorationForeground': termRed,
     'testing.message.error.lineBackground': alpha(termRed, 0.10),
@@ -802,29 +734,29 @@ function buildColors(p) {
 
     // ── Settings ──────────────────────────────────────────────────────────
     'settings.headerForeground': accentBright,
-    'settings.headerBorder': border,
+    'settings.headerBorder': '#00000000',
     'settings.modifiedItemIndicator': accent,
     'settings.dropdownBackground': dropBg,
     'settings.dropdownForeground': fg0,
-    'settings.dropdownBorder': border,
-    'settings.dropdownListBorder': border,
+    'settings.dropdownBorder': '#00000000',
+    'settings.dropdownListBorder': '#00000000',
     'settings.checkboxBackground': inputBg,
     'settings.checkboxForeground': fg0,
-    'settings.checkboxBorder': border,
+    'settings.checkboxBorder': '#00000000',
     'settings.rowHoverBackground': alpha(accent, 0.06),
     'settings.textInputBackground': inputBg,
     'settings.textInputForeground': fg0,
-    'settings.textInputBorder': border,
+    'settings.textInputBorder': '#00000000',
     'settings.numberInputBackground': inputBg,
     'settings.numberInputForeground': fg0,
-    'settings.numberInputBorder': border,
+    'settings.numberInputBorder': '#00000000',
     'settings.focusedRowBackground': alpha(accent, 0.08),
-    'settings.focusedRowBorder': alpha(accent, 0.30),
-    'settings.sashBorder': border,
+    'settings.focusedRowBorder': '#00000000',
+    'settings.sashBorder': '#00000000',
 
-    // ── Editor — Extended ─────────────────────────────────────────────────
+    // ── Editor — Extended ────────────────────────────────────────────────
     'editorBracketMatch.background': alpha(accent, 0.15),
-    'editorBracketMatch.border': accent,
+    'editorBracketMatch.border': '#00000000',
     'editorBracketHighlight.foreground1': accent,
     'editorBracketHighlight.foreground2': synFunc,
     'editorBracketHighlight.foreground3': synType,
@@ -846,19 +778,19 @@ function buildColors(p) {
     'editorBracketPairGuide.background6': alpha(synKeyword, 0.10),
     'editorCodeLens.foreground': fg2,
     'editorError.foreground': termRed,
-    'editorError.border': alpha(termRed, 0.40),
+    'editorError.border': '#00000000',
     'editorError.background': alpha(termRed, 0.08),
     'editorWarning.foreground': termYellow,
-    'editorWarning.border': alpha(termYellow, 0.40),
+    'editorWarning.border': '#00000000',
     'editorWarning.background': alpha(termYellow, 0.06),
     'editorInfo.foreground': termBlue,
-    'editorInfo.border': alpha(termBlue, 0.40),
+    'editorInfo.border': '#00000000',
     'editorInfo.background': alpha(termBlue, 0.06),
     'editorHint.foreground': accent,
-    'editorHint.border': alpha(accent, 0.40),
+    'editorHint.border': '#00000000',
     'editorGhostText.foreground': alpha(fg0, 0.45),
     'editorGhostText.background': alpha(bg2, 0.25),
-    'editorGhostText.border': alpha(accent, 0.25),
+    'editorGhostText.border': '#00000000',
     'editorInlayHint.foreground': alpha(fg0, 0.70),
     'editorInlayHint.background': alpha(bg2, 0.50),
     'editorInlayHint.parameterForeground': alpha(fg0, 0.80),
@@ -875,7 +807,7 @@ function buildColors(p) {
     'editorOverviewRuler.warningForeground': termYellow,
     'editorOverviewRuler.infoForeground': termBlue,
     'editorOverviewRuler.bracketMatchForeground': alpha(accent, 0.55),
-    'editorOverviewRuler.border': border,
+    'editorOverviewRuler.border': '#00000000',
     'editorOverviewRuler.findMatchForeground': alpha(accentBright, 0.55),
     'editorOverviewRuler.rangeHighlightForeground': alpha(accent, 0.35),
     'editorOverviewRuler.selectionHighlightForeground': alpha(accent, 0.45),
@@ -885,20 +817,20 @@ function buildColors(p) {
     'editorOverviewRuler.currentContentForeground': alpha(termGreen, 0.55),
     'editorOverviewRuler.incomingContentForeground': alpha(termBlue, 0.55),
     'editorStickyScroll.background': bg0,
-    'editorStickyScroll.border': border,
+    'editorStickyScroll.border': '#00000000',
     'editorStickyScroll.shadow': shadow,
     'editorStickyScrollHover.background': bg2,
-    'editorUnnecessaryCode.border': alpha(fg2, 0.25),
+    'editorUnnecessaryCode.border': '#00000000',
     'editorUnnecessaryCode.opacity': alpha(fg0, 0.30),
 
     // ── Inline Chat ───────────────────────────────────────────────────────
     'inlineChat.background': bg2,
     'inlineChat.foreground': fg0,
-    'inlineChat.border': border,
+    'inlineChat.border': '#00000000',
     'inlineChat.shadow': shadow,
     'inlineChatInput.background': inputBg,
-    'inlineChatInput.border': border,
-    'inlineChatInput.focusBorder': accent,
+    'inlineChatInput.border': '#00000000',
+    'inlineChatInput.focusBorder': '#00000000',
     'inlineChatInput.placeholderForeground': fg2,
     'inlineChatDiff.inserted': alpha(termGreen, 0.12),
     'inlineChatDiff.removed': alpha(termRed, 0.12),
@@ -913,7 +845,7 @@ function buildColors(p) {
     'problemsWarningIcon.foreground': termYellow,
     'problemsInfoIcon.foreground': termBlue,
 
-    // ── Welcome Page ──────────────────────────────────────────────────────
+    // ── Welcome Page ─────────────────────────────────────────────────────
     'welcomePage.background': bg0,
     'welcomePage.buttonBackground': bg2,
     'welcomePage.buttonHoverBackground': alpha(accent, 0.12),
@@ -921,26 +853,26 @@ function buildColors(p) {
     'welcomePage.progress.foreground': buttonAccent,
     'welcomePage.tileBackground': bg1,
     'welcomePage.tileHoverBackground': bg2,
-    'welcomePage.tileBorder': border,
+    'welcomePage.tileBorder': '#00000000',
     'walkThrough.embeddedEditorBackground': bg1,
     'walkthrough.stepTitle.foreground': accentBright,
 
-    // ── Chat ──────────────────────────────────────────────────────────────
+    // ─ Chat ──────────────────────────────────────────────────────────────
     'chat.requestBackground': alpha(accent, 0.06),
-    'chat.requestBorder': alpha(accent, 0.20),
+    'chat.requestBorder': '#00000000',
     'chat.slashCommandBackground': alpha(accent, 0.14),
     'chat.slashCommandForeground': accentBright,
     'chat.avatarBackground': alpha(accent, 0.18),
     'chat.avatarForeground': fg0,
 
-    // ── Extension ─────────────────────────────────────────────────────────
+    // ── Extension ───────────────────────────────────────────────────────
     'extensionButton.prominentBackground': buttonAccent,
     'extensionButton.prominentForeground': '#ffffff',
     'extensionButton.prominentHoverBackground': accentDim,
     'extensionButton.background': alpha(accent, 0.20),
     'extensionButton.foreground': fg0,
     'extensionButton.hoverBackground': alpha(accent, 0.30),
-    'extensionButton.separator': alpha(fg0, 0.20),
+    'extensionButton.separator': '#00000000',
     'extensionBadge.remoteBackground': buttonAccent,
     'extensionBadge.remoteForeground': '#ffffff',
     'extensionIcon.starForeground': termYellow,
@@ -952,11 +884,11 @@ function buildColors(p) {
     'ports.iconRunningProcessForeground': termGreen,
 
     // ── Contast ───────────────────────────────────────────────────────────
-    'contrastBorder': border,
-    'contrastActiveBorder': accent,
+    'contrastBorder': '#00000000', // FIX: Removed contrast border
+    'contrastActiveBorder': '#00000000', // FIX: Removed contrast active border
 
     // ── Sash ──────────────────────────────────────────────────────────────
-    'sash.hoverBorder': alpha(accent, 0.55),
+    'sash.hoverBorder': '#00000000',
 
     // ── Profiles ──────────────────────────────────────────────────────────
     'profileBadge.background': buttonAccent,
@@ -965,24 +897,24 @@ function buildColors(p) {
     // ── Notebook ──────────────────────────────────────────────────────────
     'notebook.editorBackground': bg0,
     'notebook.cellBackground': bg0,
-    'notebook.cellBorderColor': border,
+    'notebook.cellBorderColor': '#00000000',
     'notebook.cellEditorBackground': bg1,
     'notebook.cellHoverBackground': alpha(accent, 0.05),
     'notebook.cellInsertionIndicator': accentBright,
     'notebook.cellStatusBarItemHoverBackground': alpha(accent, 0.10),
-    'notebook.cellToolbarSeparator': border,
+    'notebook.cellToolbarSeparator': '#00000000',
     'notebook.cellActiveEditorIndicator': accentBright,
-    'notebook.focusedEditorBorder': alpha(accent, 0.60),
+    'notebook.focusedEditorBorder': '#00000000',
     'notebook.focusedCellBackground': alpha(accent, 0.08),
-    'notebook.focusedCellBorder': alpha(accent, 0.45),
-    'notebook.focusedRowBorder': alpha(accent, 0.45),
-    'notebook.inactiveFocusedCellBorder': alpha(accent, 0.25),
-    'notebook.inactiveSelectedCellBorder': alpha(accent, 0.20),
+    'notebook.focusedCellBorder': '#00000000',
+    'notebook.focusedRowBorder': '#00000000',
+    'notebook.inactiveFocusedCellBorder': '#00000000',
+    'notebook.inactiveSelectedCellBorder': '#00000000',
     'notebook.outputContainerBackgroundColor': bg1,
-    'notebook.outputContainerBorderColor': border,
+    'notebook.outputContainerBorderColor': '#00000000',
     'notebook.rowHoverBackground': alpha(accent, 0.04),
     'notebook.selectedCellBackground': alpha(accent, 0.10),
-    'notebook.selectedCellBorder': alpha(accent, 0.35),
+    'notebook.selectedCellBorder': '#00000000',
     'notebook.selectedRangeBackground': alpha(accent, 0.14),
     'notebook.symbolHighlightBackground': alpha(accent, 0.12),
     'notebookScrollbarSlider.activeBackground': alpha(accent, 0.55),
