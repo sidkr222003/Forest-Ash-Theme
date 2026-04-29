@@ -46,6 +46,7 @@
     "chroma-js": "^2.6.0"
   },
   "activationEvents": [
+    "onStartupFinished",
     "onCommand:forestAsh.generateTheme",
     "onCommand:forestAsh.applyCustomTheme",
     "onCommand:forestAsh.deleteCustomTheme",
@@ -89,11 +90,21 @@
         }
       ],
       "commandPalette": [
-        { "command": "forestAsh.generateTheme" },
-        { "command": "forestAsh.applyCustomTheme" },
-        { "command": "forestAsh.deleteCustomTheme" },
-        { "command": "forestAsh.listCustomThemes" },
-        { "command": "forestAsh.quickThemePicker" }
+        {
+          "command": "forestAsh.generateTheme"
+        },
+        {
+          "command": "forestAsh.applyCustomTheme"
+        },
+        {
+          "command": "forestAsh.deleteCustomTheme"
+        },
+        {
+          "command": "forestAsh.listCustomThemes"
+        },
+        {
+          "command": "forestAsh.quickThemePicker"
+        }
       ]
     },
     "configuration": {
@@ -101,7 +112,10 @@
       "properties": {
         "forestAsh.defaultVariant": {
           "type": "string",
-          "enum": ["dark", "light"],
+          "enum": [
+            "dark",
+            "light"
+          ],
           "default": "dark",
           "description": "Default variant when generating a custom theme.",
           "enumDescriptions": [
