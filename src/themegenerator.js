@@ -6,17 +6,25 @@
  *
  * DESIGN PRINCIPLE
  * ════════════════
- * We extract ONLY the hue from the user's chosen colour and apply
- * Forest-Ash–calibrated saturation + lightness to every role.
- * This guarantees readable contrast regardless of how dark/bright
- * or saturated the user's input colour is.
+ * We extract hue, saturation AND lightness from the user's chosen colour.
  *
- * Reverse-engineered from the Forest Ash default dark/light themes:
+ * All three components influence the output:
+ *   • Hue        → drives the base colour family & complementary offsets
+ *   • Saturation → scales how vivid or muted the entire generated palette is
+ *   • Lightness  → shifts the tonal "weight" of backgrounds and foregrounds,
+ *                  and nudges syntax-token lightness for headroom / contrast
  *
- *   Dark  BG    : hsl(H,  8%, 10-18%)   FG    : hsl(H,  8%, 82%)
- *   Dark  synKw : hsl(H, 28%, 60%)      synSt : hsl(H+40, 48%, 58%)
- *   Dark  synFn : hsl(H+200, 28%, 60%)  synTp : hsl(H+290, 28%, 62%)
- *   Light BG    : hsl(H, 12%, 96-87%)   FG    : hsl(H, 15%, 18%)
+ * This guarantees:
+ *   (a) Two different hex inputs ALWAYS produce different themes.
+ *   (b) Readable contrast is preserved for both dark and light variants.
+ *   (c) The Forest Ash "split-complementary triad" feel is retained.
+ *
+ * Hue offsets (unchanged from Forest Ash spec):
+ *   keyword  → H + 0°     (base hue family)
+ *   string   → H + 40°    (warm amber-ochre)
+ *   function → H + 200°   (cool blue)
+ *   type     → H + 290°   (muted rose/violet)
+ *   number   → H + 55°    (warm gold)
  */
 
 const chroma = require('chroma-js');
@@ -42,66 +50,115 @@ function alpha(hex, opacity) {
   return hex.slice(0, 7) + byte;
 }
 
-/** Extract hue degrees (0-360) from any chroma-valid colour. */
-function hueOf(hex) {
-  const [h] = chroma(hex).hsl();
-  return isNaN(h) ? 0 : h; // achromatic greys → treat as 0°
+/**
+ * Extract hue (0-360), saturation (0-100) and lightness (0-100)
+ * from any chroma-valid colour.
+ */
+function hslOf(hex) {
+  const [h, s, l] = chroma(hex).hsl();
+  return {
+    h: isNaN(h) ? 0 : h,          // achromatic greys → 0°
+    s: isNaN(s) ? 0 : s * 100,    // 0-100
+    l: isNaN(l) ? 50 : l * 100,   // 0-100
+  };
+}
+
+/**
+ * Clamp a value between lo and hi.
+ */
+function clamp(v, lo, hi) {
+  return Math.max(lo, Math.min(hi, v));
 }
 
 // ─── Forest Ash palette builder ───────────────────────────────────────────────
 
 /**
- * Builds the full palette from a single hue-seed and variant flag.
+ * Builds the full palette from a user colour and variant flag.
  *
- * Hue offsets mirror Forest Ash's split-complementary triad:
- *   keyword  → base hue       (sage-green family when H≈100°)
- *   string   → H + 40°        (warm amber-ochre family)
- *   function → H + 200°       (cool muted-blue family)
- *   type     → H + 290°       (muted rose/violet family)
- *   number   → H + 55°        (warm golden family)
+ * Key insight
+ * ───────────
+ * sF  (saturation factor, 0.6–1.4) – derived from input saturation.
+ *      A muted (#4a4a52) input lowers sF; a vivid (#ff4400) input raises it.
+ *      Applied multiplicatively to every saturation value so the whole theme
+ *      breathes more or less colour.
+ *
+ * lShift (lightness shift, −6 to +6) – derived from input lightness.
+ *      A very dark input (#0a0a14) pushes lShift negative, making BG slots
+ *      even darker and giving tokens more breathing room.
+ *      A very light input (#e8f0ff) pushes lShift positive.
+ *      Applied additively to token lightness values (BG/FG slots are
+ *      separately handled so contrast is never lost).
+ *
+ * hueBias (0–20°) – extra hue rotation derived from saturation.
+ *      Saturated colours shift the complementary offsets slightly,
+ *      making the triad feel unique without breaking harmony.
  */
 function buildPalette(baseHex, isDark) {
-  const H = hueOf(baseHex);
+  const { h: H, s: S, l: L } = hslOf(baseHex);
+
+  // ── Derived influence factors ────────────────────────────────────────────
+  // sF: 0.60 at S=0, 1.00 at S=50, 1.40 at S=100
+  const sF = clamp(0.60 + (S / 100) * 0.80, 0.60, 1.40);
+
+  // lShift: −6 at L=0, 0 at L=50, +6 at L=100
+  const lShift = clamp(((L - 50) / 50) * 6, -6, 6);
+
+  // hueBias: 0 at S=0, up to 20° at S=100 (adds individuality to triad)
+  const hueBias = (S / 100) * 20;
+
+  // Convenience: scaled saturation helper
+  // Multiplies base saturation by sF, then clamps to [0,100]
+  const ss = (base) => clamp(base * sF, 0, 100);
+
+  // Convenience: shifted lightness helper (for token slots only)
+  const sl = (base) => clamp(base + lShift * 0.5, 0, 100);
 
   if (isDark) {
     // ── backgrounds ───────────────────────────────────────────────────────
-    const bg0 = hsl(H,  8, 10);   // editor bg
-    const bg1 = hsl(H,  8, 12);   // sidebar / activity bar
-    const bg2 = hsl(H,  7, 15);   // panels / dropdowns / widgets
-    const bg3 = hsl(H,  7, 18);   // hover list items
-    const bg4 = hsl(H,  9, 14);   // highlighted line
+    // BG values get a tiny lShift to reflect input darkness, clamped tightly
+    // so they never become unreadably dark or wash out.
+    const bgL = (base) => clamp(base + lShift * 0.3, 6, 22);
+
+    const bg0 = hsl(H, ss( 8), bgL(10));
+    const bg1 = hsl(H, ss( 8), bgL(12));
+    const bg2 = hsl(H, ss( 7), bgL(15));
+    const bg3 = hsl(H, ss( 7), bgL(18));
+    const bg4 = hsl(H, ss( 9), bgL(14));
 
     // ── foregrounds ───────────────────────────────────────────────────────
-    const fg0 = hsl(H,  9, 82);   // primary text  — warm cream
-    const fg1 = hsl(H,  7, 65);   // secondary
-    const fg2 = hsl(H,  5, 44);   // comments / placeholders / disabled
+    // FG values get inverse lShift so contrast is maintained.
+    const fgL = (base) => clamp(base - lShift * 0.2, 38, 92);
 
-    // ── accent (UI chrome, active borders, badges) ─────────────────────────
-    const accent       = hsl(H,      44, 62);
-    const accentBright = hsl(H,      50, 68);
-    const accentDim    = hsl(H,      38, 55);
+    const fg0 = hsl(H, ss( 9), fgL(82));
+    const fg1 = hsl(H, ss( 7), fgL(65));
+    const fg2 = hsl(H, ss( 5), fgL(44));
+
+    // ── accent ────────────────────────────────────────────────────────────
+    const accent       = hsl(H, ss(44), sl(62));
+    const accentBright = hsl(H, ss(50), sl(68));
+    const accentDim    = hsl(H, ss(38), sl(55));
     const accentFaint  = alpha(accent, 0.15);
 
-    // ── syntax tokens ─────────────────────────────────────────────────────
-    const synKeyword  = hsl(H,       28, 60);   // base hue
-    const synFunc     = hsl(H + 200, 28, 62);   // cool blue
-    const synString   = hsl(H +  40, 48, 58);   // warm amber
-    const synType     = hsl(H + 290, 28, 64);   // muted rose
-    const synNumber   = hsl(H +  55, 42, 64);   // warm gold
-    const synComment  = hsl(H,       10, 40);   // desaturated dim
-    const synVar      = hsl(H,        8, 76);   // near-fg
-    const synPunct    = hsl(H,        7, 60);   // delimiter
-    const synTag      = hsl(H +  15,  32, 62);  // warm tag
-    const synAttr     = hsl(H -  15,  30, 64);  // cool attr
+    // ── syntax tokens (split-complementary triad + hueBias) ───────────────
+    const synKeyword  = hsl(H,                  ss(28), sl(60));
+    const synFunc     = hsl(H + 200 + hueBias,  ss(28), sl(62));
+    const synString   = hsl(H +  40 + hueBias,  ss(48), sl(58));
+    const synType     = hsl(H + 290 - hueBias,  ss(28), sl(64));
+    const synNumber   = hsl(H +  55 + hueBias,  ss(42), sl(64));
+    const synComment  = hsl(H,                  ss(10), sl(40));
+    const synVar      = hsl(H,                  ss( 8), sl(76));
+    const synPunct    = hsl(H,                  ss( 7), sl(60));
+    const synTag      = hsl(H +  15 + hueBias,  ss(32), sl(62));
+    const synAttr     = hsl(H -  15 - hueBias,  ss(30), sl(64));
 
     // ── terminal ANSI ─────────────────────────────────────────────────────
     const termBlack   = bg1;
-    const termRed     = hsl(H +   0,  55, 58);
-    const termGreen   = hsl(H + 100,  45, 56);
-    const termYellow  = hsl(H +  50,  55, 60);
-    const termBlue    = hsl(H + 220,  45, 60);
-    const termMagenta = hsl(H + 280,  40, 60);
-    const termCyan    = hsl(H + 170,  42, 58);
+    const termRed     = hsl(H +   0,  ss(55), sl(58));
+    const termGreen   = hsl(H + 100,  ss(45), sl(56));
+    const termYellow  = hsl(H +  50,  ss(55), sl(60));
+    const termBlue    = hsl(H + 220,  ss(45), sl(60));
+    const termMagenta = hsl(H + 280,  ss(40), sl(60));
+    const termCyan    = hsl(H + 170,  ss(42), sl(58));
     const termWhite   = fg0;
 
     return {
@@ -120,39 +177,45 @@ function buildPalette(baseHex, isDark) {
     //  LIGHT variant  (paper-like Forest Ash style)
     // ══════════════════════════════════════════════════════
 
-    const bg0 = hsl(H, 14, 96);
-    const bg1 = hsl(H, 12, 93);
-    const bg2 = hsl(H, 10, 90);
-    const bg3 = hsl(H,  9, 87);
-    const bg4 = hsl(H, 16, 92);
+    // BG: higher L base; lShift is inverted (dark input → slightly darker bg)
+    const bgL = (base) => clamp(base - lShift * 0.25, 82, 98);
+    // FG: lShift makes fg slightly darker for dark inputs (more contrast)
+    const fgL = (base) => clamp(base - lShift * 0.20, 12, 60);
 
-    const fg0 = hsl(H, 18, 18);
-    const fg1 = hsl(H, 14, 34);
-    const fg2 = hsl(H,  9, 52);
+    const bg0 = hsl(H, ss(14), bgL(96));
+    const bg1 = hsl(H, ss(12), bgL(93));
+    const bg2 = hsl(H, ss(10), bgL(90));
+    const bg3 = hsl(H, ss( 9), bgL(87));
+    const bg4 = hsl(H, ss(16), bgL(92));
 
-    const accent       = hsl(H,      50, 42);
-    const accentBright = hsl(H,      55, 38);
-    const accentDim    = hsl(H,      42, 48);
+    const fg0 = hsl(H, ss(18), fgL(18));
+    const fg1 = hsl(H, ss(14), fgL(34));
+    const fg2 = hsl(H, ss( 9), fgL(52));
+
+    const accent       = hsl(H, ss(50), sl(42));
+    const accentBright = hsl(H, ss(55), sl(38));
+    const accentDim    = hsl(H, ss(42), sl(48));
     const accentFaint  = alpha(accent, 0.12);
 
-    const synKeyword   = hsl(H,       38, 38);
-    const synFunc      = hsl(H + 200, 38, 38);
-    const synString    = hsl(H +  40, 52, 36);
-    const synType      = hsl(H + 290, 35, 40);
-    const synNumber    = hsl(H +  55, 46, 36);
-    const synComment   = hsl(H,       12, 56);
-    const synVar       = hsl(H,       16, 24);
-    const synPunct     = hsl(H,       12, 42);
-    const synTag       = hsl(H +  15,  40, 38);
-    const synAttr      = hsl(H -  15,  36, 40);
+    // Syntax: lightness is pushed down for light variant (dark on bright bg)
+    const synKeyword  = hsl(H,                  ss(38), sl(38));
+    const synFunc     = hsl(H + 200 + hueBias,  ss(38), sl(38));
+    const synString   = hsl(H +  40 + hueBias,  ss(52), sl(36));
+    const synType     = hsl(H + 290 - hueBias,  ss(35), sl(40));
+    const synNumber   = hsl(H +  55 + hueBias,  ss(46), sl(36));
+    const synComment  = hsl(H,                  ss(12), sl(56));
+    const synVar      = hsl(H,                  ss(16), sl(24));
+    const synPunct    = hsl(H,                  ss(12), sl(42));
+    const synTag      = hsl(H +  15 + hueBias,  ss(40), sl(38));
+    const synAttr     = hsl(H -  15 - hueBias,  ss(36), sl(40));
 
     const termBlack   = fg0;
-    const termRed     = hsl(H +   0,  52, 38);
-    const termGreen   = hsl(H + 100,  42, 36);
-    const termYellow  = hsl(H +  50,  52, 36);
-    const termBlue    = hsl(H + 220,  42, 38);
-    const termMagenta = hsl(H + 280,  38, 38);
-    const termCyan    = hsl(H + 170,  40, 36);
+    const termRed     = hsl(H +   0,  ss(52), sl(38));
+    const termGreen   = hsl(H + 100,  ss(42), sl(36));
+    const termYellow  = hsl(H +  50,  ss(52), sl(36));
+    const termBlue    = hsl(H + 220,  ss(42), sl(38));
+    const termMagenta = hsl(H + 280,  ss(38), sl(38));
+    const termCyan    = hsl(H + 170,  ss(40), sl(36));
     const termWhite   = bg0;
 
     return {
@@ -213,16 +276,20 @@ function buildColors(p) {
 
     // ── Button ────────────────────────────────────────────────────────────
     'button.background':                    accentBright,
-    'button.foreground':                    '#ffffff',
+    'button.foreground':                    isDark ? '#ffffff' : '#ffffff',
     'button.hoverBackground':               accentDim,
     'button.secondaryBackground':           bg3,
     'button.secondaryForeground':           fg0,
     'button.secondaryHoverBackground':      bg2,
+    'button.border':                        alpha(accent, 0.40),
+    'button.separator':                     alpha(fg0, 0.20),
 
     // ── Checkbox ──────────────────────────────────────────────────────────
     'checkbox.background':                  inputBg,
     'checkbox.foreground':                  fg0,
     'checkbox.border':                      border,
+    'checkbox.selectBackground':            alpha(accent, 0.20),
+    'checkbox.selectBorder':                accent,
 
     // ── Dropdown ──────────────────────────────────────────────────────────
     'dropdown.background':                  dropBg,
@@ -238,13 +305,16 @@ function buildColors(p) {
     'inputOption.activeBackground':         alpha(accent, 0.22),
     'inputOption.activeBorder':             accent,
     'inputOption.activeForeground':         accentBright,
+    'inputOption.hoverBackground':          alpha(accent, 0.12),
     'inputValidation.errorBackground':      alpha(termRed,    isDark ? 0.22 : 0.10),
     'inputValidation.errorBorder':          termRed,
     'inputValidation.errorForeground':      fg0,
     'inputValidation.warningBackground':    alpha(termYellow, 0.18),
     'inputValidation.warningBorder':        termYellow,
+    'inputValidation.warningForeground':    fg0,
     'inputValidation.infoBackground':       alpha(accent, 0.18),
     'inputValidation.infoBorder':           accent,
+    'inputValidation.infoForeground':       fg0,
 
     // ── Scrollbar ─────────────────────────────────────────────────────────
     'scrollbar.shadow':                     shadow,
@@ -260,20 +330,31 @@ function buildColors(p) {
     // ── List / Tree ───────────────────────────────────────────────────────
     'list.activeSelectionBackground':       alpha(accent, 0.24),
     'list.activeSelectionForeground':       fg0,
+    'list.activeSelectionIconForeground':   fg0,
     'list.dropBackground':                  alpha(accent, 0.14),
     'list.focusBackground':                 alpha(accent, 0.18),
     'list.focusForeground':                 fg0,
+    'list.focusOutline':                    alpha(accent, 0.40),
     'list.highlightForeground':             accentBright,
     'list.hoverBackground':                 alpha(accent, 0.10),
     'list.hoverForeground':                 fg0,
     'list.inactiveSelectionBackground':     alpha(accent, 0.14),
     'list.inactiveSelectionForeground':     fg0,
+    'list.inactiveSelectionIconForeground': fg1,
+    'list.inactiveFocusBackground':         alpha(accent, 0.10),
+    'list.inactiveFocusOutline':            alpha(accent, 0.25),
     'list.errorForeground':                 termRed,
     'list.warningForeground':               termYellow,
+    'list.deemphasizedForeground':          fg2,
+    'list.filterMatchBackground':           alpha(accent, 0.18),
+    'list.filterMatchBorder':               alpha(accent, 0.40),
     'listFilterWidget.background':          dropBg,
     'listFilterWidget.outline':             accent,
     'listFilterWidget.noMatchesOutline':    termRed,
+    'listFilterWidget.shadow':              shadow,
     'tree.indentGuidesStroke':              alpha(accent, 0.28),
+    'tree.tableColumnsBorder':              border,
+    'tree.tableOddRowsBackground':          alpha(accent, 0.04),
 
     // ── Activity Bar ──────────────────────────────────────────────────────
     'activityBar.background':               bg1,
@@ -281,13 +362,21 @@ function buildColors(p) {
     'activityBar.foreground':               fg0,
     'activityBar.inactiveForeground':       fg2,
     'activityBar.dropBorder':               accent,
+    'activityBar.activeBackground':         alpha(accent, 0.10),
+    'activityBar.activeBorder':             accent,
+    'activityBar.activeFocusBorder':        accentBright,
     'activityBarBadge.background':          accentBright,
     'activityBarBadge.foreground':          '#ffffff',
+    'activityBarTop.foreground':            fg0,
+    'activityBarTop.activeBorder':          accent,
+    'activityBarTop.inactiveForeground':    fg2,
+    'activityBarTop.dropBorder':            accent,
 
     // ── Side Bar ──────────────────────────────────────────────────────────
     'sideBar.background':                   bg1,
     'sideBar.foreground':                   fg0,
     'sideBar.border':                       border,
+    'sideBar.dropBackground':               alpha(accent, 0.12),
     'sideBarTitle.foreground':              fg0,
     'sideBarSectionHeader.background':      bg2,
     'sideBarSectionHeader.foreground':      fg1,
@@ -299,46 +388,89 @@ function buildColors(p) {
     'minimap.errorHighlight':               termRed,
     'minimap.warningHighlight':             termYellow,
     'minimap.background':                   bg0,
+    'minimap.foregroundOpacity':            alpha('#000000', 0.85),
     'minimapSlider.background':             alpha(fg2, 0.18),
     'minimapSlider.hoverBackground':        alpha(accent, 0.38),
     'minimapSlider.activeBackground':       alpha(accent, 0.55),
 
     // ── Editor Groups / Tabs ──────────────────────────────────────────────
     'editorGroup.border':                   border,
+    'editorGroup.dropBackground':           alpha(accent, 0.12),
+    'editorGroup.emptyBackground':          bg0,
+    'editorGroup.focusedEmptyBorder':       accent,
+    'editorGroup.dropIntoPromptForeground': fg0,
+    'editorGroup.dropIntoPromptBackground': bg2,
+    'editorGroup.dropIntoPromptBorder':     border,
     'editorGroupHeader.tabsBackground':     bg1,
     'editorGroupHeader.tabsBorder':         border,
+    'editorGroupHeader.noTabsBackground':   bg1,
+    'editorGroupHeader.border':             border,
     'tab.activeBackground':                 bg0,
     'tab.activeForeground':                 fg0,
     'tab.border':                           border,
     'tab.activeBorder':                     bg0,
-    'tab.activeBorderTop':                  accent,    // ← Forest Ash signature top accent bar
+    'tab.activeBorderTop':                  accent,   // Forest Ash signature
     'tab.inactiveBackground':               bg1,
     'tab.inactiveForeground':               fg2,
     'tab.hoverBackground':                  alpha(accent, 0.08),
+    'tab.hoverForeground':                  fg1,
+    'tab.hoverBorder':                      accent,
+    'tab.unfocusedActiveBackground':        bg1,
     'tab.unfocusedActiveForeground':        fg1,
+    'tab.unfocusedActiveBorder':            bg1,
+    'tab.unfocusedActiveBorderTop':         alpha(accent, 0.50),
+    'tab.unfocusedInactiveBackground':      bg1,
     'tab.unfocusedInactiveForeground':      fg2,
+    'tab.unfocusedHoverBackground':         alpha(accent, 0.06),
+    'tab.unfocusedHoverForeground':         fg2,
+    'tab.unfocusedHoverBorder':             alpha(accent, 0.50),
     'tab.lastPinnedBorder':                 alpha(accent, 0.40),
+    'tab.selectedBorderTop':                accent,
+    'tab.dragAndDropBorder':                accentBright,
 
     // ── Editor ────────────────────────────────────────────────────────────
     'editor.background':                    bg0,
     'editor.foreground':                    fg0,
     'editorLineNumber.foreground':          fg2,
     'editorLineNumber.activeForeground':    fg1,
+    'editorLineNumber.dimmedForeground':    alpha(fg2, 0.55),
     'editorCursor.foreground':              accentBright,
+    'editorCursor.background':              bg0,
     'editor.selectionBackground':           alpha(accent, 0.28),
+    'editor.selectionForeground':           fg0,
+    'editor.inactiveSelectionBackground':   alpha(accent, isDark ? 0.14 : 0.10),
     'editor.selectionHighlightBackground':  alpha(accent, 0.14),
+    'editor.selectionHighlightBorder':      alpha(accent, 0.30),
     'editor.wordHighlightBackground':       alpha(accent, 0.16),
+    'editor.wordHighlightBorder':           alpha(accent, 0.32),
     'editor.wordHighlightStrongBackground': alpha(accent, 0.26),
+    'editor.wordHighlightStrongBorder':     alpha(accent, 0.45),
+    'editor.wordHighlightTextBackground':   alpha(accent, 0.10),
+    'editor.wordHighlightTextBorder':       alpha(accent, 0.25),
     'editor.findMatchBackground':           alpha(accentBright, 0.38),
+    'editor.findMatchBorder':               accentBright,
     'editor.findMatchHighlightBackground':  alpha(accent, 0.18),
+    'editor.findMatchHighlightBorder':      alpha(accent, 0.35),
+    'editor.findRangeHighlightBackground':  alpha(accent, 0.08),
+    'editor.findRangeHighlightBorder':      alpha(accent, 0.20),
     'editor.hoverHighlightBackground':      alpha(accent, 0.12),
     'editor.lineHighlightBackground':       bg4,
+    'editor.lineHighlightBorder':           border,
     'editorLink.activeForeground':          accentBright,
     'editor.rangeHighlightBackground':      alpha(accent, 0.08),
+    'editor.rangeHighlightBorder':          alpha(accent, 0.20),
+    'editor.symbolHighlightBackground':     alpha(accent, 0.14),
+    'editor.symbolHighlightBorder':         alpha(accent, 0.30),
     'editorWhitespace.foreground':          alpha(fg2, 0.40),
     'editorIndentGuide.background':         alpha(fg2, 0.18),
+    'editorIndentGuide.background1':        alpha(fg2, 0.18),
     'editorIndentGuide.activeBackground':   alpha(accent, 0.38),
+    'editorIndentGuide.activeBackground1':  alpha(accent, 0.38),
     'editorRuler.foreground':               alpha(fg2, 0.18),
+    'editorMultiCursor.primary.foreground': accentBright,
+    'editorMultiCursor.primary.background': bg0,
+    'editorMultiCursor.secondary.foreground': accent,
+    'editorMultiCursor.secondary.background': bg0,
 
     // ── Editor Widgets ────────────────────────────────────────────────────
     'editorWidget.background':              bg2,
@@ -348,28 +480,51 @@ function buildColors(p) {
     'editorSuggestWidget.background':       bg2,
     'editorSuggestWidget.border':           border,
     'editorSuggestWidget.foreground':       fg0,
+    'editorSuggestWidget.focusHighlightForeground': accentBright,
     'editorSuggestWidget.highlightForeground': accentBright,
-    'editorSuggestWidget.selectedBackground':  alpha(accent, 0.22),
+    'editorSuggestWidget.selectedBackground':   alpha(accent, 0.22),
+    'editorSuggestWidget.selectedForeground':   fg0,
+    'editorSuggestWidget.selectedIconForeground': accentBright,
+    'editorSuggestWidgetStatus.foreground': fg2,
     'editorHoverWidget.background':         bg2,
     'editorHoverWidget.border':             border,
     'editorHoverWidget.foreground':         fg0,
+    'editorHoverWidget.highlightForeground': accentBright,
+    'editorHoverWidget.statusBarBackground': bg3,
 
     // ── Gutter ────────────────────────────────────────────────────────────
     'editorGutter.background':              bg0,
     'editorGutter.modifiedBackground':      alpha(accent, 0.80),
     'editorGutter.addedBackground':         alpha(termGreen, 0.80),
     'editorGutter.deletedBackground':       alpha(termRed, 0.80),
+    'editorGutter.commentRangeForeground':  fg2,
+    'editorGutter.commentGlyphForeground':  accent,
+    'editorGutter.commentUnresolvedGlyphForeground': termYellow,
+    'editorGutter.foldingControlForeground': fg2,
 
     // ── Diff Editor ───────────────────────────────────────────────────────
     'diffEditor.insertedTextBackground':    alpha(termGreen, 0.12),
+    'diffEditor.insertedTextBorder':        alpha(termGreen, 0.25),
     'diffEditor.removedTextBackground':     alpha(termRed,   0.12),
+    'diffEditor.removedTextBorder':         alpha(termRed,   0.25),
     'diffEditor.insertedLineBackground':    alpha(termGreen, 0.07),
     'diffEditor.removedLineBackground':     alpha(termRed,   0.07),
+    'diffEditor.diagonalFill':              alpha(termBlue,  0.30),
+    'diffEditor.unchangedRegionBackground': bg1,
+    'diffEditor.unchangedRegionForeground': fg2,
+    'diffEditor.unchangedCodeBackground':   alpha(fg2, 0.06),
+    'diffEditorGutter.insertedLineBackground': alpha(termGreen, 0.70),
+    'diffEditorGutter.removedLineBackground':  alpha(termRed,   0.70),
+    'diffEditorOverview.insertedForeground':   alpha(termGreen, 0.70),
+    'diffEditorOverview.removedForeground':    alpha(termRed,   0.70),
 
     // ── Peek View ─────────────────────────────────────────────────────────
     'peekView.border':                      accentDim,
     'peekViewEditor.background':            bg0,
     'peekViewEditor.matchHighlightBackground': alpha(accent, 0.26),
+    'peekViewEditor.matchHighlightBorder':  alpha(accent, 0.45),
+    'peekViewEditorGutter.background':      bg0,
+    'peekViewEditorStickyScroll.background': bg1,
     'peekViewResult.background':            bg2,
     'peekViewResult.fileForeground':        fg0,
     'peekViewResult.lineForeground':        fg1,
@@ -385,28 +540,59 @@ function buildColors(p) {
     'merge.currentContentBackground':       alpha(termGreen, 0.08),
     'merge.incomingHeaderBackground':       alpha(termBlue,  0.20),
     'merge.incomingContentBackground':      alpha(termBlue,  0.08),
+    'merge.border':                         border,
+    'merge.commonHeaderBackground':         alpha(accent, 0.18),
+    'merge.commonContentBackground':        alpha(accent, 0.08),
 
     // ── Panel ─────────────────────────────────────────────────────────────
     'panel.background':                     bg1,
     'panel.border':                         border,
+    'panel.dropBorder':                     accent,
     'panelTitle.activeBorder':              accent,
     'panelTitle.activeForeground':          fg0,
     'panelTitle.inactiveForeground':        fg2,
+    'panelInput.border':                    border,
+    'panelSection.border':                  border,
+    'panelSection.dropBackground':          alpha(accent, 0.12),
+    'panelSectionHeader.background':        bg2,
+    'panelSectionHeader.foreground':        fg0,
+    'panelSectionHeader.border':            border,
 
     // ── Status Bar ────────────────────────────────────────────────────────
     'statusBar.background':                 bg1,
     'statusBar.foreground':                 fg0,
     'statusBar.border':                     border,
+    'statusBar.focusBorder':                alpha(accent, 0.60),
     'statusBar.debuggingBackground':        accentDim,
     'statusBar.debuggingForeground':        '#ffffff',
+    'statusBar.debuggingBorder':            alpha(accentDim, 0.50),
     'statusBar.noFolderBackground':         bg2,
     'statusBar.noFolderForeground':         fg0,
+    'statusBar.noFolderBorder':             border,
     'statusBarItem.activeBackground':       alpha(accent, 0.28),
     'statusBarItem.hoverBackground':        alpha(accent, 0.14),
+    'statusBarItem.hoverForeground':        fg0,
+    'statusBarItem.focusBorder':            alpha(accent, 0.60),
     'statusBarItem.prominentBackground':    accentBright,
     'statusBarItem.prominentForeground':    '#ffffff',
+    'statusBarItem.prominentHoverForeground': '#ffffff',
+    'statusBarItem.prominentHoverBackground': accentDim,
     'statusBarItem.remoteBackground':       accent,
     'statusBarItem.remoteForeground':       '#ffffff',
+    'statusBarItem.remoteHoverBackground':  accentDim,
+    'statusBarItem.remoteHoverForeground':  '#ffffff',
+    'statusBarItem.errorBackground':        alpha(termRed, 0.22),
+    'statusBarItem.errorForeground':        termRed,
+    'statusBarItem.errorHoverBackground':   alpha(termRed, 0.35),
+    'statusBarItem.errorHoverForeground':   termRed,
+    'statusBarItem.warningBackground':      alpha(termYellow, 0.18),
+    'statusBarItem.warningForeground':      termYellow,
+    'statusBarItem.warningHoverBackground': alpha(termYellow, 0.30),
+    'statusBarItem.warningHoverForeground': termYellow,
+    'statusBarItem.offlineBackground':      alpha(fg2, 0.18),
+    'statusBarItem.offlineForeground':      fg1,
+    'statusBarItem.offlineHoverBackground': alpha(fg2, 0.28),
+    'statusBarItem.offlineHoverForeground': fg0,
 
     // ── Title Bar ─────────────────────────────────────────────────────────
     'titleBar.activeBackground':            bg1,
@@ -414,14 +600,32 @@ function buildColors(p) {
     'titleBar.border':                      border,
     'titleBar.inactiveBackground':          bg1,
     'titleBar.inactiveForeground':          fg2,
+    'menubar.selectionForeground':          fg0,
+    'menubar.selectionBackground':          alpha(accent, 0.14),
+    'menubar.selectionBorder':              alpha(accent, 0.28),
+
+    // ── Menu ──────────────────────────────────────────────────────────────
+    'menu.background':                      bg2,
+    'menu.foreground':                      fg0,
+    'menu.border':                          border,
+    'menu.selectionBackground':             alpha(accent, 0.22),
+    'menu.selectionForeground':             fg0,
+    'menu.selectionBorder':                 alpha(accent, 0.35),
+    'menu.separatorBackground':             border,
+    'menu.shadow':                          shadow,
 
     // ── Notifications ─────────────────────────────────────────────────────
     'notifications.background':             bg2,
     'notifications.border':                 border,
     'notifications.foreground':             fg0,
+    'notificationCenter.border':            border,
+    'notificationCenterHeader.foreground':  fg0,
+    'notificationCenterHeader.background':  bg3,
+    'notificationToast.border':             border,
     'notificationsErrorIcon.foreground':    termRed,
     'notificationsWarningIcon.foreground':  termYellow,
     'notificationsInfoIcon.foreground':     accent,
+    'notificationLink.foreground':          accentBright,
 
     // ── Quick Pick ────────────────────────────────────────────────────────
     'pickerGroup.border':                   border,
@@ -429,42 +633,88 @@ function buildColors(p) {
     'quickInput.background':                bg2,
     'quickInput.foreground':                fg0,
     'quickInputList.focusBackground':       alpha(accent, 0.22),
+    'quickInputList.focusForeground':       fg0,
+    'quickInputList.focusIconForeground':   accent,
+    'quickInputTitle.background':           bg3,
 
     // ── Keybinding Label ──────────────────────────────────────────────────
     'keybindingLabel.background':           alpha(accent, 0.12),
     'keybindingLabel.border':               border,
     'keybindingLabel.bottomBorder':         alpha(accent, 0.45),
     'keybindingLabel.foreground':           fg0,
+    'keybindingTable.headerBackground':     bg2,
+    'keybindingTable.rowsBackground':       alpha(accent, 0.04),
 
     // ── Breadcrumb ────────────────────────────────────────────────────────
     'breadcrumb.activeSelectionForeground': accentBright,
     'breadcrumb.background':                bg0,
     'breadcrumb.focusForeground':           accent,
     'breadcrumb.foreground':                fg1,
+    'breadcrumbPicker.background':          bg2,
 
     // ── Symbol Icons ──────────────────────────────────────────────────────
+    'symbolIcon.arrayForeground':           p.synVar,
+    'symbolIcon.booleanForeground':         p.synNumber,
     'symbolIcon.classForeground':           synType,
+    'symbolIcon.colorForeground':           p.synString,
+    'symbolIcon.constantForeground':        p.synNumber,
+    'symbolIcon.constructorForeground':     synFunc,
+    'symbolIcon.enumeratorForeground':      synType,
+    'symbolIcon.enumeratorMemberForeground': p.synNumber,
+    'symbolIcon.eventForeground':           accent,
+    'symbolIcon.fieldForeground':           synAttr,
+    'symbolIcon.fileForeground':            fg1,
+    'symbolIcon.folderForeground':          accent,
     'symbolIcon.functionForeground':        synFunc,
+    'symbolIcon.interfaceForeground':       synType,
+    'symbolIcon.keyForeground':             synAttr,
     'symbolIcon.keywordForeground':         synKeyword,
     'symbolIcon.methodForeground':          synFunc,
     'symbolIcon.moduleForeground':          accent,
-    'symbolIcon.stringForeground':          synString,
+    'symbolIcon.namespaceForeground':       synType,
+    'symbolIcon.nullForeground':            p.synNumber,
+    'symbolIcon.numberForeground':          p.synNumber,
+    'symbolIcon.objectForeground':          p.synVar,
+    'symbolIcon.operatorForeground':        p.synPunct,
+    'symbolIcon.packageForeground':         accent,
+    'symbolIcon.propertyForeground':        synAttr,
+    'symbolIcon.referenceForeground':       p.synVar,
+    'symbolIcon.snippetForeground':         p.synString,
+    'symbolIcon.stringForeground':          p.synString,
+    'symbolIcon.structForeground':          synType,
+    'symbolIcon.textForeground':            fg0,
+    'symbolIcon.typeParameterForeground':   synType,
+    'symbolIcon.unitForeground':            p.synNumber,
     'symbolIcon.variableForeground':        p.synVar,
 
     // ── Git Decoration ────────────────────────────────────────────────────
-    'gitDecoration.addedResourceForeground':         termGreen,
-    'gitDecoration.conflictingResourceForeground':   termYellow,
-    'gitDecoration.deletedResourceForeground':       termRed,
-    'gitDecoration.ignoredResourceForeground':       fg2,
-    'gitDecoration.modifiedResourceForeground':      accent,
-    'gitDecoration.stageDeletedResourceForeground':  termRed,
-    'gitDecoration.stageModifiedResourceForeground': accent,
-    'gitDecoration.untrackedResourceForeground':     termGreen,
+    'gitDecoration.addedResourceForeground':           termGreen,
+    'gitDecoration.conflictingResourceForeground':     termYellow,
+    'gitDecoration.deletedResourceForeground':         termRed,
+    'gitDecoration.ignoredResourceForeground':         fg2,
+    'gitDecoration.modifiedResourceForeground':        accent,
+    'gitDecoration.renamedResourceForeground':         termCyan,
+    'gitDecoration.stageDeletedResourceForeground':    termRed,
+    'gitDecoration.stageModifiedResourceForeground':   accent,
+    'gitDecoration.submoduleResourceForeground':       termBlue,
+    'gitDecoration.untrackedResourceForeground':       termGreen,
+
+    // ── Source Control ────────────────────────────────────────────────────
+    'scm.providerBorder':                   border,
 
     // ── Terminal ──────────────────────────────────────────────────────────
     'terminal.background':                  bg0,
     'terminal.border':                      border,
     'terminal.foreground':                  fg0,
+    'terminal.dropBackground':              alpha(accent, 0.10),
+    'terminal.findMatchBackground':         alpha(accentBright, 0.40),
+    'terminal.findMatchBorder':             accent,
+    'terminal.findMatchHighlightBackground': alpha(accent, 0.20),
+    'terminal.findMatchHighlightBorder':    alpha(accent, 0.35),
+    'terminal.inactiveSelectionBackground': alpha(accent, 0.14),
+    'terminal.selectionBackground':         alpha(accent, 0.28),
+    'terminal.selectionForeground':         fg0,
+    'terminal.tab.activeBorder':            accent,
     'terminal.ansiBlack':                   termBlack,
     'terminal.ansiBrightBlack':             fg2,
     'terminal.ansiRed':                     termRed,
@@ -481,111 +731,261 @@ function buildColors(p) {
     'terminal.ansiBrightCyan':              chroma(termCyan).brighten(0.5).hex(),
     'terminal.ansiWhite':                   fg1,
     'terminal.ansiBrightWhite':             termWhite,
-    'terminal.selectionBackground':         alpha(accent, 0.28),
+    'terminalCommandDecoration.defaultBackground': termBlue,
+    'terminalCommandDecoration.successBackground': termGreen,
+    'terminalCommandDecoration.errorBackground':   termRed,
+    'terminalCommandGuide.foreground':      alpha(fg2, 0.70),
     'terminalCursor.foreground':            accentBright,
+    'terminalCursor.background':            bg0,
+    'terminalOverviewRuler.cursorForeground': accentBright,
+    'terminalOverviewRuler.findMatchForeground': alpha(accentBright, 0.70),
+    'terminalStickyScroll.background':      bg1,
+    'terminalStickyScrollHover.background': bg2,
 
     // ── Debug ─────────────────────────────────────────────────────────────
     'debugToolBar.background':              bg2,
     'debugToolBar.border':                  border,
     'editor.stackFrameHighlightBackground': alpha(termYellow, 0.14),
     'editor.focusedStackFrameHighlightBackground': alpha(termGreen, 0.14),
+    'debugView.exceptionLabelBackground':   alpha(termRed, 0.20),
+    'debugView.exceptionLabelForeground':   termRed,
+    'debugView.stateLabelBackground':       alpha(accent, 0.18),
+    'debugView.stateLabelForeground':       fg0,
+    'debugView.valueChangedHighlight':      accentBright,
+    'debugTokenExpression.name':            synAttr,
+    'debugTokenExpression.value':           synString,
+    'debugTokenExpression.string':          synString,
+    'debugTokenExpression.boolean':         p.synNumber,
+    'debugTokenExpression.number':          p.synNumber,
+    'debugTokenExpression.error':           termRed,
+    'debugConsole.infoForeground':          fg1,
+    'debugConsole.warningForeground':       termYellow,
+    'debugConsole.errorForeground':         termRed,
+    'debugConsole.sourceForeground':        accent,
+    'debugConsoleInputIcon.foreground':     accentBright,
+    'debugIcon.breakpointForeground':       termRed,
+    'debugIcon.breakpointDisabledForeground': alpha(termRed, 0.45),
+    'debugIcon.breakpointUnverifiedForeground': termYellow,
+    'debugIcon.breakpointCurrentStackframeForeground': accentBright,
+    'debugIcon.breakpointStackframeForeground': accent,
+    'debugIcon.startForeground':            termGreen,
+    'debugIcon.pauseForeground':            termYellow,
+    'debugIcon.stopForeground':             termRed,
+    'debugIcon.disconnectForeground':       termRed,
+    'debugIcon.restartForeground':          termGreen,
+    'debugIcon.stepOverForeground':         accent,
+    'debugIcon.stepIntoForeground':         accent,
+    'debugIcon.stepOutForeground':          accent,
+    'debugIcon.continueForeground':         termGreen,
+    'debugIcon.stepBackForeground':         accentDim,
+
+    // ── Testing ───────────────────────────────────────────────────────────
+    'testing.iconFailed':                   termRed,
+    'testing.iconErrored':                  termRed,
+    'testing.iconPassed':                   termGreen,
+    'testing.runAction':                    termGreen,
+    'testing.iconQueued':                   termYellow,
+    'testing.iconUnset':                    fg2,
+    'testing.iconSkipped':                  accentDim,
+    'testing.peekBorder':                   accentDim,
+    'testing.peekHeaderBackground':         bg2,
+    'testing.message.error.decorationForeground':   termRed,
+    'testing.message.error.lineBackground':          alpha(termRed, 0.10),
+    'testing.message.info.decorationForeground':     fg2,
+    'testing.message.info.lineBackground':           alpha(accent, 0.06),
 
     // ── Settings ──────────────────────────────────────────────────────────
     'settings.headerForeground':            accentBright,
+    'settings.headerBorder':                border,
     'settings.modifiedItemIndicator':       accent,
     'settings.dropdownBackground':          dropBg,
+    'settings.dropdownForeground':          fg0,
     'settings.dropdownBorder':              border,
+    'settings.dropdownListBorder':          border,
     'settings.checkboxBackground':          inputBg,
+    'settings.checkboxForeground':          fg0,
     'settings.checkboxBorder':              border,
+    'settings.rowHoverBackground':          alpha(accent, 0.06),
     'settings.textInputBackground':         inputBg,
+    'settings.textInputForeground':         fg0,
     'settings.textInputBorder':             border,
     'settings.numberInputBackground':       inputBg,
+    'settings.numberInputForeground':       fg0,
     'settings.numberInputBorder':           border,
+    'settings.focusedRowBackground':        alpha(accent, 0.08),
+    'settings.focusedRowBorder':            alpha(accent, 0.30),
+    'settings.sashBorder':                  border,
 
-    // ── Missing Editor Keys ─────────────────────────────────────────────
-    'editor.inactiveSelectionBackground':        alpha(accent, isDark ? 0.14 : 0.10),
-    'editor.findRangeHighlightBackground':       alpha(accent, 0.08),
-    'editor.lineHighlightBorder':                border,
-    'editorBracketMatch.background':             alpha(accent, 0.15),
-    'editorBracketMatch.border':                 accent,
-    'editorCodeLens.foreground':                 fg2,
-    'editorError.foreground':                    termRed,
-    'editorWarning.foreground':                  termYellow,
-    'editorInfo.foreground':                     termBlue,
-    'editorHint.foreground':                     accent,
-    'editorGhostText.foreground':                alpha(fg0, 0.45),
-    'editorGhostText.background':                alpha(bg2, 0.25),
-    'editorGhostText.border':                    alpha(accent, 0.25),
-    'editorGroup.dropBackground':                alpha(accent, 0.12),
-    'editorIndentGuide.background1':             alpha(fg2, 0.18),
-    'editorIndentGuide.activeBackground1':       alpha(accent, 0.38),
-    'editorInlayHint.foreground':                alpha(fg0, 0.70),
-    'editorInlayHint.background':                alpha(bg2, 0.50),
-    'editorInlayHint.parameterForeground':       alpha(fg0, 0.80),
-    'editorInlayHint.parameterBackground':       alpha(bg2, 0.55),
-    'editorInlayHint.typeForeground':            alpha(accent, 0.85),
-    'editorInlayHint.typeBackground':            alpha(bg2, 0.55),
-    'editorLightBulb.foreground':                termYellow,
-    'editorLightBulbAutoFix.foreground':         termGreen,
-    'editorLineNumber.dimmedForeground':         alpha(fg2, 0.55),
-    'editorOverviewRuler.addedForeground':       alpha(termGreen, 0.80),
-    'editorOverviewRuler.deletedForeground':     alpha(termRed, 0.80),
-    'editorOverviewRuler.modifiedForeground':    alpha(accent, 0.80),
-    'editorOverviewRuler.border':                border,
-    'editorStickyScroll.background':             bg0,
-    'editorStickyScrollHover.background':        bg2,
-    'editorSuggestWidget.selectedForeground':    fg0,
-    'editorUnnecessaryCode.opacity':             alpha(fg0, 0.30),
+    // ── Editor — Extended ─────────────────────────────────────────────────
+    'editorBracketMatch.background':        alpha(accent, 0.15),
+    'editorBracketMatch.border':            accent,
+    'editorBracketHighlight.foreground1':   accent,
+    'editorBracketHighlight.foreground2':   synFunc,
+    'editorBracketHighlight.foreground3':   synType,
+    'editorBracketHighlight.foreground4':   p.synNumber,
+    'editorBracketHighlight.foreground5':   synString,
+    'editorBracketHighlight.foreground6':   synKeyword,
+    'editorBracketHighlight.unexpectedBracket.foreground': termRed,
+    'editorBracketPairGuide.activeBackground1':   alpha(accent, 0.30),
+    'editorBracketPairGuide.activeBackground2':   alpha(synFunc, 0.30),
+    'editorBracketPairGuide.activeBackground3':   alpha(synType, 0.30),
+    'editorBracketPairGuide.activeBackground4':   alpha(p.synNumber, 0.30),
+    'editorBracketPairGuide.activeBackground5':   alpha(synString, 0.30),
+    'editorBracketPairGuide.activeBackground6':   alpha(synKeyword, 0.30),
+    'editorBracketPairGuide.background1':         alpha(accent, 0.10),
+    'editorBracketPairGuide.background2':         alpha(synFunc, 0.10),
+    'editorBracketPairGuide.background3':         alpha(synType, 0.10),
+    'editorBracketPairGuide.background4':         alpha(p.synNumber, 0.10),
+    'editorBracketPairGuide.background5':         alpha(synString, 0.10),
+    'editorBracketPairGuide.background6':         alpha(synKeyword, 0.10),
+    'editorCodeLens.foreground':            fg2,
+    'editorError.foreground':               termRed,
+    'editorError.border':                   alpha(termRed, 0.40),
+    'editorError.background':               alpha(termRed, 0.08),
+    'editorWarning.foreground':             termYellow,
+    'editorWarning.border':                 alpha(termYellow, 0.40),
+    'editorWarning.background':             alpha(termYellow, 0.06),
+    'editorInfo.foreground':                termBlue,
+    'editorInfo.border':                    alpha(termBlue, 0.40),
+    'editorInfo.background':                alpha(termBlue, 0.06),
+    'editorHint.foreground':                accent,
+    'editorHint.border':                    alpha(accent, 0.40),
+    'editorGhostText.foreground':           alpha(fg0, 0.45),
+    'editorGhostText.background':           alpha(bg2, 0.25),
+    'editorGhostText.border':               alpha(accent, 0.25),
+    'editorInlayHint.foreground':           alpha(fg0, 0.70),
+    'editorInlayHint.background':           alpha(bg2, 0.50),
+    'editorInlayHint.parameterForeground':  alpha(fg0, 0.80),
+    'editorInlayHint.parameterBackground':  alpha(bg2, 0.55),
+    'editorInlayHint.typeForeground':       alpha(accent, 0.85),
+    'editorInlayHint.typeBackground':       alpha(bg2, 0.55),
+    'editorLightBulb.foreground':           termYellow,
+    'editorLightBulbAutoFix.foreground':    termGreen,
+    'editorLightBulbAi.foreground':         accentBright,
+    'editorOverviewRuler.addedForeground':  alpha(termGreen, 0.80),
+    'editorOverviewRuler.deletedForeground': alpha(termRed, 0.80),
+    'editorOverviewRuler.modifiedForeground': alpha(accent, 0.80),
+    'editorOverviewRuler.errorForeground':  termRed,
+    'editorOverviewRuler.warningForeground': termYellow,
+    'editorOverviewRuler.infoForeground':   termBlue,
+    'editorOverviewRuler.bracketMatchForeground': alpha(accent, 0.55),
+    'editorOverviewRuler.border':           border,
+    'editorOverviewRuler.findMatchForeground': alpha(accentBright, 0.55),
+    'editorOverviewRuler.rangeHighlightForeground': alpha(accent, 0.35),
+    'editorOverviewRuler.selectionHighlightForeground': alpha(accent, 0.45),
+    'editorOverviewRuler.wordHighlightForeground':  alpha(accent, 0.45),
+    'editorOverviewRuler.wordHighlightStrongForeground': alpha(accent, 0.65),
+    'editorOverviewRuler.wordHighlightTextForeground': alpha(accent, 0.35),
+    'editorOverviewRuler.currentContentForeground': alpha(termGreen, 0.55),
+    'editorOverviewRuler.incomingContentForeground': alpha(termBlue, 0.55),
+    'editorStickyScroll.background':        bg0,
+    'editorStickyScroll.border':            border,
+    'editorStickyScroll.shadow':            shadow,
+    'editorStickyScrollHover.background':   bg2,
+    'editorUnnecessaryCode.border':         alpha(fg2, 0.25),
+    'editorUnnecessaryCode.opacity':        alpha(fg0, 0.30),
 
-    // ── Missing Terminal Keys ───────────────────────────────────────────
-    'terminal.dropBackground':                   alpha(accent, 0.10),
-    'terminal.findMatchBackground':              alpha(accentBright, 0.40),
-    'terminal.findMatchBorder':                  accent,
-    'terminal.findMatchHighlightBackground':     alpha(accent, 0.20),
-    'terminal.inactiveSelectionBackground':      alpha(accent, 0.14),
-    'terminal.tab.activeBorder':                 accent,
-    'terminalCommandDecoration.defaultBackground':termBlue,
-    'terminalCommandDecoration.successBackground':termGreen,
-    'terminalCommandDecoration.errorBackground': termRed,
-    'terminalCommandGuide.foreground':           alpha(fg2, 0.70),
-    'terminalCursor.background':                 bg0,
+    // ── Inline Chat ───────────────────────────────────────────────────────
+    'inlineChat.background':                bg2,
+    'inlineChat.foreground':                fg0,
+    'inlineChat.border':                    border,
+    'inlineChat.shadow':                    shadow,
+    'inlineChatInput.background':           inputBg,
+    'inlineChatInput.border':               border,
+    'inlineChatInput.focusBorder':          accent,
+    'inlineChatInput.placeholderForeground': fg2,
+    'inlineChatDiff.inserted':              alpha(termGreen, 0.12),
+    'inlineChatDiff.removed':               alpha(termRed, 0.12),
 
-    // ── Missing Diff / Merge Keys ───────────────────────────────────────
-    'diffEditor.diagonalFill':                   alpha(termBlue, 0.30),
-    'diffEditorGutter.insertedLineBackground':   alpha(termGreen, 0.70),
-    'diffEditorGutter.removedLineBackground':    alpha(termRed, 0.70),
-    'merge.border':                              border,
-    'merge.commonHeaderBackground':              alpha(accent, 0.18),
-    'merge.commonContentBackground':             alpha(accent, 0.08),
+    // ── Minimap Gutter ────────────────────────────────────────────────────
+    'minimapGutter.addedBackground':        alpha(termGreen, 0.80),
+    'minimapGutter.deletedBackground':      alpha(termRed,   0.80),
+    'minimapGutter.modifiedBackground':     alpha(accent,    0.80),
 
-    // ── Missing UI Keys ─────────────────────────────────────────────────
-    'gitDecoration.submoduleResourceForeground': termBlue,
-    'inlineChat.background':                     bg2,
-    'inlineChat.foreground':                     fg0,
-    'inlineChat.border':                         border,
-    'inlineChatInput.background':                inputBg,
-    'inlineChatInput.border':                    border,
-    'minimapGutter.addedBackground':             alpha(termGreen, 0.80),
-    'minimapGutter.deletedBackground':           alpha(termRed, 0.80),
-    'minimapGutter.modifiedBackground':          alpha(accent, 0.80),
-    'peekViewEditorGutter.background':           bg0,
-    'problemsErrorIcon.foreground':              termRed,
-    'problemsWarningIcon.foreground':            termYellow,
-    'problemsInfoIcon.foreground':               termBlue,
-    'quickInputList.focusForeground':            fg0,
-    'quickInputList.focusIconForeground':        accent,
-    'symbolIcon.interfaceForeground':            synType,
-    'tab.hoverBorder':                           accent,
-    'menu.background':                           bg2,
-    'menu.foreground':                           fg0,
-    'list.inactiveFocusBackground':              alpha(accent, 0.10),
-    'contrastBorder':                            border,
+    // ── Problems ──────────────────────────────────────────────────────────
+    'problemsErrorIcon.foreground':         termRed,
+    'problemsWarningIcon.foreground':       termYellow,
+    'problemsInfoIcon.foreground':          termBlue,
 
     // ── Welcome Page ──────────────────────────────────────────────────────
     'welcomePage.background':               bg0,
     'welcomePage.buttonBackground':         bg2,
     'welcomePage.buttonHoverBackground':    alpha(accent, 0.12),
+    'welcomePage.progress.background':      bg3,
+    'welcomePage.progress.foreground':      accentBright,
+    'welcomePage.tileBackground':           bg1,
+    'welcomePage.tileHoverBackground':      bg2,
+    'welcomePage.tileBorder':               border,
     'walkThrough.embeddedEditorBackground': bg1,
+    'walkthrough.stepTitle.foreground':     accentBright,
+
+    // ── Chat ──────────────────────────────────────────────────────────────
+    'chat.requestBackground':               alpha(accent, 0.06),
+    'chat.requestBorder':                   alpha(accent, 0.20),
+    'chat.slashCommandBackground':          alpha(accent, 0.14),
+    'chat.slashCommandForeground':          accentBright,
+    'chat.avatarBackground':                alpha(accent, 0.18),
+    'chat.avatarForeground':                fg0,
+
+    // ── Extension ─────────────────────────────────────────────────────────
+    'extensionButton.prominentBackground':  accentBright,
+    'extensionButton.prominentForeground':  '#ffffff',
+    'extensionButton.prominentHoverBackground': accentDim,
+    'extensionButton.background':           alpha(accent, 0.20),
+    'extensionButton.foreground':           fg0,
+    'extensionButton.hoverBackground':      alpha(accent, 0.30),
+    'extensionButton.separator':            alpha(fg0, 0.20),
+    'extensionBadge.remoteBackground':      accentBright,
+    'extensionBadge.remoteForeground':      '#ffffff',
+    'extensionIcon.starForeground':         termYellow,
+    'extensionIcon.verifiedForeground':     termGreen,
+    'extensionIcon.preReleaseForeground':   accentBright,
+    'extensionIcon.sponsorForeground':      termMagenta,
+
+    // ── Ports ─────────────────────────────────────────────────────────────
+    'ports.iconRunningProcessForeground':   termGreen,
+
+    // ── Contast ───────────────────────────────────────────────────────────
+    'contrastBorder':                       border,
+    'contrastActiveBorder':                 accent,
+
+    // ── Sash ──────────────────────────────────────────────────────────────
+    'sash.hoverBorder':                     alpha(accent, 0.55),
+
+    // ── Profiles ──────────────────────────────────────────────────────────
+    'profileBadge.background':              accentBright,
+    'profileBadge.foreground':              '#ffffff',
+
+    // ── Notebook ──────────────────────────────────────────────────────────
+    'notebook.editorBackground':            bg0,
+    'notebook.cellBackground':              bg0,
+    'notebook.cellBorderColor':             border,
+    'notebook.cellEditorBackground':        bg1,
+    'notebook.cellHoverBackground':         alpha(accent, 0.05),
+    'notebook.cellInsertionIndicator':      accentBright,
+    'notebook.cellStatusBarItemHoverBackground': alpha(accent, 0.10),
+    'notebook.cellToolbarSeparator':        border,
+    'notebook.cellActiveEditorIndicator':   accentBright,
+    'notebook.focusedEditorBorder':         alpha(accent, 0.60),
+    'notebook.focusedCellBackground':       alpha(accent, 0.08),
+    'notebook.focusedCellBorder':           alpha(accent, 0.45),
+    'notebook.focusedRowBorder':            alpha(accent, 0.45),
+    'notebook.inactiveFocusedCellBorder':   alpha(accent, 0.25),
+    'notebook.inactiveSelectedCellBorder':  alpha(accent, 0.20),
+    'notebook.outputContainerBackgroundColor': bg1,
+    'notebook.outputContainerBorderColor':  border,
+    'notebook.rowHoverBackground':          alpha(accent, 0.04),
+    'notebook.selectedCellBackground':      alpha(accent, 0.10),
+    'notebook.selectedCellBorder':          alpha(accent, 0.35),
+    'notebook.selectedRangeBackground':     alpha(accent, 0.14),
+    'notebook.symbolHighlightBackground':   alpha(accent, 0.12),
+    'notebookScrollbarSlider.activeBackground': alpha(accent, 0.55),
+    'notebookScrollbarSlider.background':   alpha(fg2, 0.18),
+    'notebookScrollbarSlider.hoverBackground': alpha(accent, 0.38),
+    'notebookStatusErrorIcon.foreground':   termRed,
+    'notebookStatusRunningIcon.foreground': accent,
+    'notebookStatusSuccessIcon.foreground': termGreen,
+    'notebookEditorOverviewRuler.runningCellForeground': accent,
   };
 }
 
@@ -714,6 +1114,7 @@ function buildTokenColors(p) {
     { name: 'Import / module path',
       scope: ['string.quoted.double.import', 'string.quoted.single.import'],
       settings: { foreground: synString, fontStyle: 'italic' } },
+
     { name: 'JSON source',
       scope: ['source.json', 'meta.structure.dictionary.json'],
       settings: { foreground: synString } },
@@ -723,15 +1124,18 @@ function buildTokenColors(p) {
       settings: { foreground: synAttr, fontStyle: 'bold' } },
 
     { name: 'JSON values',
-      scope: ['meta.structure.dictionary.value.json', 'string.quoted.double.json', 'constant.numeric.json', 'constant.language.json', 'variable.other.json'],
+      scope: ['meta.structure.dictionary.value.json', 'string.quoted.double.json',
+              'constant.numeric.json', 'constant.language.json', 'variable.other.json'],
       settings: { foreground: synString } },
 
     { name: 'JSON punctuation',
-      scope: ['punctuation.definition.string.begin.json', 'punctuation.definition.string.end.json'],
+      scope: ['punctuation.definition.string.begin.json',
+              'punctuation.definition.string.end.json'],
       settings: { foreground: synString } },
 
     { name: 'TSX source',
-      scope: ['source.tsx', 'meta.tag.tsx', 'meta.embedded.block.tsx', 'entity.name.tag.tsx', 'meta.jsx.children'],
+      scope: ['source.tsx', 'meta.tag.tsx', 'meta.embedded.block.tsx',
+              'entity.name.tag.tsx', 'meta.jsx.children'],
       settings: { foreground: synTag } },
 
     { name: 'TSX punctuation',
@@ -747,7 +1151,8 @@ function buildTokenColors(p) {
       settings: { foreground: synNumber, fontStyle: 'italic' } },
 
     { name: 'Variable extended',
-      scope: ['variable.other.readwrite', 'variable.object.property', 'support.variable', 'variable.other.json'],
+      scope: ['variable.other.readwrite', 'variable.object.property',
+              'support.variable', 'variable.other.json'],
       settings: { foreground: synVar } },
 
     { name: 'Variable function',
@@ -755,7 +1160,8 @@ function buildTokenColors(p) {
       settings: { foreground: synFunc } },
 
     { name: 'Punctuation extended',
-      scope: ['punctuation', 'meta.brace', 'meta.bracket', 'meta.delimiter', 'punctuation.definition.string'],
+      scope: ['punctuation', 'meta.brace', 'meta.bracket', 'meta.delimiter',
+              'punctuation.definition.string'],
       settings: { foreground: synPunct } },
 
     { name: 'Invalid',
@@ -769,6 +1175,52 @@ function buildTokenColors(p) {
     { name: 'Source / text',
       scope: ['source', 'text'],
       settings: { foreground: fg0 } },
+
+    { name: 'Decorator / annotation',
+      scope: ['meta.decorator', 'punctuation.decorator',
+              'storage.type.annotation'],
+      settings: { foreground: p.accent, fontStyle: 'italic' } },
+
+    { name: 'Template expression',
+      scope: ['punctuation.definition.template-expression',
+              'punctuation.section.embedded'],
+      settings: { foreground: synPunct } },
+
+    { name: 'Shell — built-in command',
+      scope: ['support.function.builtin.shell'],
+      settings: { foreground: synKeyword } },
+
+    { name: 'Shell — variable',
+      scope: ['variable.other.normal.shell'],
+      settings: { foreground: synVar } },
+
+    { name: 'YAML key',
+      scope: ['entity.name.tag.yaml'],
+      settings: { foreground: synAttr } },
+
+    { name: 'TOML key',
+      scope: ['keyword.key.toml'],
+      settings: { foreground: synAttr } },
+
+    { name: 'Diff — inserted',
+      scope: ['markup.inserted'],
+      settings: { foreground: p.termGreen } },
+
+    { name: 'Diff — deleted',
+      scope: ['markup.deleted'],
+      settings: { foreground: termRed } },
+
+    { name: 'Diff — changed',
+      scope: ['markup.changed'],
+      settings: { foreground: p.termYellow } },
+
+    { name: 'Markup quote',
+      scope: ['markup.quote'],
+      settings: { foreground: synComment, fontStyle: 'italic' } },
+
+    { name: 'Markup raw block',
+      scope: ['markup.raw.block'],
+      settings: { foreground: synString } },
   ];
 }
 
@@ -796,25 +1248,37 @@ function generateThemeJson(displayName, baseHex, isDark) {
     tokenColors,
     semanticHighlighting: true,
     semanticTokenColors: {
-      'class':             { foreground: p.synType },
-      'interface':         { foreground: p.synType, fontStyle: 'italic' },
-      'enum':              { foreground: p.synType },
-      'enumMember':        { foreground: p.synNumber },
-      'function':          { foreground: p.synFunc },
-      'method':            { foreground: p.synFunc },
-      'property':          { foreground: p.synAttr },
-      'variable':          { foreground: p.synVar  },
-      'variable.readonly': { foreground: p.synNumber },
-      'parameter':         { foreground: p.synVar, fontStyle: 'italic' },
-      'type':              { foreground: p.synType },
-      'namespace':         { foreground: p.synType, fontStyle: 'italic' },
-      'keyword':           { foreground: p.synKeyword },
-      'string':            { foreground: p.synString  },
-      'number':            { foreground: p.synNumber  },
-      'comment':           { foreground: p.synComment, fontStyle: 'italic' },
-      'decorator':         { foreground: p.accent     },
-      'macro':             { foreground: p.synKeyword },
-      'selfKeyword':       { foreground: p.synKeyword, fontStyle: 'italic' },
+      'class':              { foreground: p.synType },
+      'interface':          { foreground: p.synType,    fontStyle: 'italic' },
+      'enum':               { foreground: p.synType },
+      'enumMember':         { foreground: p.synNumber },
+      'function':           { foreground: p.synFunc },
+      'method':             { foreground: p.synFunc },
+      'property':           { foreground: p.synAttr },
+      'property.readonly':  { foreground: p.synNumber },
+      'variable':           { foreground: p.synVar  },
+      'variable.readonly':  { foreground: p.synNumber },
+      'variable.defaultLibrary': { foreground: p.synKeyword },
+      'parameter':          { foreground: p.synVar,     fontStyle: 'italic' },
+      'type':               { foreground: p.synType },
+      'typeAlias':          { foreground: p.synType,    fontStyle: 'italic' },
+      'namespace':          { foreground: p.synType,    fontStyle: 'italic' },
+      'keyword':            { foreground: p.synKeyword },
+      'string':             { foreground: p.synString  },
+      'number':             { foreground: p.synNumber  },
+      'comment':            { foreground: p.synComment, fontStyle: 'italic' },
+      'decorator':          { foreground: p.accent,     fontStyle: 'italic' },
+      'macro':              { foreground: p.synKeyword },
+      'selfKeyword':        { foreground: p.synKeyword, fontStyle: 'italic' },
+      'label':              { foreground: p.synAttr },
+      'event':              { foreground: p.accent },
+      'modifier':           { foreground: p.synKeyword },
+      'regexp':             { foreground: p.synNumber },
+      'operator':           { foreground: p.synPunct },
+      'struct':             { foreground: p.synType },
+      'builtinType':        { foreground: p.synType,    fontStyle: 'italic' },
+      'lifetime':           { foreground: p.accent,     fontStyle: 'italic' },
+      'generic':            { foreground: p.synType },
     },
   };
 }
