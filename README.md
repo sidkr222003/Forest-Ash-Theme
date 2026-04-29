@@ -43,6 +43,26 @@ This extension now includes 21 themes:
 20. Forest Ash Sakura Charcoal Light
 21. Forest Ash Kage Washi Light
 
+## Theme Generator
+
+Forest Ash now includes a built-in **custom theme generator** that lets you create your own unique variants from any accent color.
+
+### How to Access the Generator
+
+| Method | Instructions |
+|--------|-------------|
+| **Command Palette** (Recommended) | Press `Ctrl+Shift+P` / `Cmd+Shift+P`, type `Forest Ash: Generate Custom Theme`, and press `Enter`. |
+| **Right-Click (Explorer)** | Right-click any file or folder in the Explorer sidebar, then select **Generate Custom Theme**. |
+| **Right-Click (Editor)** | Right-click inside any editor tab, then select **Generate Custom Theme**. |
+| **VS Code Settings** | Go to `Preferences > Settings`, search for **Forest Ash**, and configure the default accent color. |
+
+### Available Commands
+
+- **Forest Ash: Generate Custom Theme** — Create a new theme from a hex color, dark/light variant, and custom name.
+- **Forest Ash: Apply Custom Theme** — Quickly switch between your generated custom themes.
+- **Forest Ash: Delete Custom Theme** — Remove a generated theme permanently.
+- **Forest Ash: List Custom Themes** — View all saved custom themes in a webview panel with color swatches.
+
 ## Design Goals
 
 - Dark and low-glare backgrounds for reduced eye fatigue

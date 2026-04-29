@@ -2,47 +2,232 @@
   "name": "forest-ash-theme",
   "displayName": "Forest Ash Theme",
   "description": "A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes.",
-  "version": "1.2.7",
+  "version": "1.3.0",
   "publisher": "NK2552003",
-  "engines": {"vscode": "^1.70.0"},
-  "categories": ["Themes"],
-  "keywords": ["vscode", "theme", "forest", "ash", "dark", "light", "anime", "eye-friendly", "paper-like"],
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "keywords": [
+    "vscode",
+    "theme",
+    "forest",
+    "ash",
+    "dark",
+    "light",
+    "anime",
+    "eye-friendly",
+    "paper-like",
+    "dynamic",
+    "custom"
+  ],
   "license": "MIT",
   "icon": "icon.png",
-  "repository": {"type": "git", "url": "https://github.com/sidkr222003/Forest-Ash-Theme"},
-  "bugs": {"url": "https://github.com/sidkr222003/Forest-Ash-Theme/issues"},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sidkr222003/Forest-Ash-Theme"
+  },
+  "bugs": {
+    "url": "https://github.com/sidkr222003/Forest-Ash-Theme/issues"
+  },
   "homepage": "https://github.com/sidkr222003/Forest-Ash-Theme",
+  "main": "./extension.js",
   "scripts": {
     "package": "vsce package",
     "publish": "vsce publish",
     "prepublishOnly": "echo \"Skipping prepublish hook to avoid recursive npm run package\""
   },
   "devDependencies": {
-    "vsce": "^2.0.0"
+    "@vscode/vsce": "^2.0.0"
   },
+  "dependencies": {
+    "chroma-js": "^2.6.0"
+  },
+  "activationEvents": [
+    "onCommand:forestAsh.generateTheme",
+    "onCommand:forestAsh.applyCustomTheme",
+    "onCommand:forestAsh.deleteCustomTheme",
+    "onCommand:forestAsh.listCustomThemes",
+    "onCommand:forestAsh.quickThemePicker"
+  ],
   "contributes": {
+    "commands": [
+      {
+        "command": "forestAsh.generateTheme",
+        "title": "Forest Ash: Generate Custom Theme",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.applyCustomTheme",
+        "title": "Forest Ash: Apply Custom Theme",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.deleteCustomTheme",
+        "title": "Forest Ash: Delete Custom Theme",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.listCustomThemes",
+        "title": "Forest Ash: List Saved Custom Themes",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.quickThemePicker",
+        "title": "Forest Ash: Quick Theme Picker",
+        "category": "Forest Ash"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "forestAsh.generateTheme",
+          "group": "forestAsh@1",
+          "when": "editorFocus"
+        }
+      ],
+      "commandPalette": [
+        { "command": "forestAsh.generateTheme" },
+        { "command": "forestAsh.applyCustomTheme" },
+        { "command": "forestAsh.deleteCustomTheme" },
+        { "command": "forestAsh.listCustomThemes" },
+        { "command": "forestAsh.quickThemePicker" }
+      ]
+    },
+    "configuration": {
+      "title": "Forest Ash Theme",
+      "properties": {
+        "forestAsh.defaultVariant": {
+          "type": "string",
+          "enum": ["dark", "light"],
+          "default": "dark",
+          "description": "Default variant when generating a custom theme.",
+          "enumDescriptions": [
+            "Deep, low-glare dark background",
+            "Paper-like light background"
+          ]
+        },
+        "forestAsh.lastBaseColor": {
+          "type": "string",
+          "default": "#4a9eff",
+          "description": "Last used base accent color for theme generation (hex).",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "forestAsh.showSwatchInStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show active custom theme color swatch in the status bar."
+        }
+      }
+    },
     "themes": [
-      {"label": "Forest Ash", "uiTheme": "vs-dark", "path": "themes/forest-ash-color-theme.json"},
-      {"label": "Forest Ash Yoru Paper", "uiTheme": "vs-dark", "path": "themes/forest-ash-yoru-paper-color-theme.json"},
-      {"label": "Forest Ash Sumi Moon", "uiTheme": "vs-dark", "path": "themes/forest-ash-sumi-moon-color-theme.json"},
-      {"label": "Forest Ash Kitsune Ink", "uiTheme": "vs-dark", "path": "themes/forest-ash-kitsune-ink-color-theme.json"},
-      {"label": "Forest Ash Shoji Night", "uiTheme": "vs-dark", "path": "themes/forest-ash-shoji-night-color-theme.json"},
-      {"label": "Forest Ash Aizome Dusk", "uiTheme": "vs-dark", "path": "themes/forest-ash-aizome-dusk-color-theme.json"},
-      {"label": "Forest Ash Ronin Lantern", "uiTheme": "vs-dark", "path": "themes/forest-ash-ronin-lantern-color-theme.json"},
-      {"label": "Forest Ash Bamboo Midnight", "uiTheme": "vs-dark", "path": "themes/forest-ash-bamboo-midnight-color-theme.json"},
-      {"label": "Forest Ash Nebula Manga", "uiTheme": "vs-dark", "path": "themes/forest-ash-nebula-manga-color-theme.json"},
-      {"label": "Forest Ash Sakura Charcoal", "uiTheme": "vs-dark", "path": "themes/forest-ash-sakura-charcoal-color-theme.json"},
-      {"label": "Forest Ash Kage Washi", "uiTheme": "vs-dark", "path": "themes/forest-ash-kage-washi-color-theme.json"},
-      {"label": "Forest Ash Yoru Paper Light", "uiTheme": "vs", "path": "themes/forest-ash-yoru-paper-light-color-theme.json"},
-      {"label": "Forest Ash Sumi Moon Light", "uiTheme": "vs", "path": "themes/forest-ash-sumi-moon-light-color-theme.json"},
-      {"label": "Forest Ash Kitsune Ink Light", "uiTheme": "vs", "path": "themes/forest-ash-kitsune-ink-light-color-theme.json"},
-      {"label": "Forest Ash Shoji Night Light", "uiTheme": "vs", "path": "themes/forest-ash-shoji-night-light-color-theme.json"},
-      {"label": "Forest Ash Aizome Dusk Light", "uiTheme": "vs", "path": "themes/forest-ash-aizome-dusk-light-color-theme.json"},
-      {"label": "Forest Ash Ronin Lantern Light", "uiTheme": "vs", "path": "themes/forest-ash-ronin-lantern-light-color-theme.json"},
-      {"label": "Forest Ash Bamboo Midnight Light", "uiTheme": "vs", "path": "themes/forest-ash-bamboo-midnight-light-color-theme.json"},
-      {"label": "Forest Ash Nebula Manga Light", "uiTheme": "vs", "path": "themes/forest-ash-nebula-manga-light-color-theme.json"},
-      {"label": "Forest Ash Sakura Charcoal Light", "uiTheme": "vs", "path": "themes/forest-ash-sakura-charcoal-light-color-theme.json"},
-      {"label": "Forest Ash Kage Washi Light", "uiTheme": "vs", "path": "themes/forest-ash-kage-washi-light-color-theme.json"}
+      {
+        "label": "Forest Ash",
+        "uiTheme": "vs-dark",
+        "path": "themes/forest-ash-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Yoru Paper",
+        "uiTheme": "vs-dark",
+        "path": "themes/forest-ash-yoru-paper-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Sumi Moon",
+        "uiTheme": "vs-dark",
+        "path": "themes/forest-ash-sumi-moon-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Kitsune Ink",
+        "uiTheme": "vs-dark",
+        "path": "themes/forest-ash-kitsune-ink-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Shoji Night",
+        "uiTheme": "vs-dark",
+        "path": "themes/forest-ash-shoji-night-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Aizome Dusk",
+        "uiTheme": "vs-dark",
+        "path": "themes/forest-ash-aizome-dusk-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Ronin Lantern",
+        "uiTheme": "vs-dark",
+        "path": "themes/forest-ash-ronin-lantern-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Bamboo Midnight",
+        "uiTheme": "vs-dark",
+        "path": "themes/forest-ash-bamboo-midnight-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Nebula Manga",
+        "uiTheme": "vs-dark",
+        "path": "themes/forest-ash-nebula-manga-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Sakura Charcoal",
+        "uiTheme": "vs-dark",
+        "path": "themes/forest-ash-sakura-charcoal-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Kage Washi",
+        "uiTheme": "vs-dark",
+        "path": "themes/forest-ash-kage-washi-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Yoru Paper Light",
+        "uiTheme": "vs",
+        "path": "themes/forest-ash-yoru-paper-light-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Sumi Moon Light",
+        "uiTheme": "vs",
+        "path": "themes/forest-ash-sumi-moon-light-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Kitsune Ink Light",
+        "uiTheme": "vs",
+        "path": "themes/forest-ash-kitsune-ink-light-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Shoji Night Light",
+        "uiTheme": "vs",
+        "path": "themes/forest-ash-shoji-night-light-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Aizome Dusk Light",
+        "uiTheme": "vs",
+        "path": "themes/forest-ash-aizome-dusk-light-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Ronin Lantern Light",
+        "uiTheme": "vs",
+        "path": "themes/forest-ash-ronin-lantern-light-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Bamboo Midnight Light",
+        "uiTheme": "vs",
+        "path": "themes/forest-ash-bamboo-midnight-light-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Nebula Manga Light",
+        "uiTheme": "vs",
+        "path": "themes/forest-ash-nebula-manga-light-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Sakura Charcoal Light",
+        "uiTheme": "vs",
+        "path": "themes/forest-ash-sakura-charcoal-light-color-theme.json"
+      },
+      {
+        "label": "Forest Ash Kage Washi Light",
+        "uiTheme": "vs",
+        "path": "themes/forest-ash-kage-washi-light-color-theme.json"
+      }
     ]
   }
 }
