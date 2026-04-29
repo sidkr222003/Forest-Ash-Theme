@@ -25,3 +25,7 @@ CHANGELOG.md
 # Exclude generated user themes but keep the folder placeholder
 themes/custom/**
 !themes/custom/.gitkeep
+resources/file.svg
+resources/dark.png
+resources/light.png
+resources/Preview.png

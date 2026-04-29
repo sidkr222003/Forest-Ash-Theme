@@ -1,0 +1,340 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <!-- Background -->
+    <radialGradient id="bg" cx="50%" cy="38%" r="70%">
+      <stop offset="0%"   stop-color="#1c2e1f"/>
+      <stop offset="55%"  stop-color="#101a11"/>
+      <stop offset="100%" stop-color="#060c07"/>
+    </radialGradient>
+
+    <!-- Moon atmosphere -->
+    <radialGradient id="moonAtmos" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#ddd4b0" stop-opacity="0.26"/>
+      <stop offset="55%"  stop-color="#ddd4b0" stop-opacity="0.09"/>
+      <stop offset="100%" stop-color="#ddd4b0" stop-opacity="0.00"/>
+    </radialGradient>
+
+    <!-- Leaf inner glow -->
+    <radialGradient id="leafGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#8ad490" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#8ad490" stop-opacity="0.00"/>
+    </radialGradient>
+
+    <!-- Soft moon blur -->
+    <filter id="moonBlur" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+
+    <!-- Particle glow -->
+    <filter id="pGlow" x="-120%" y="-120%" width="340%" height="340%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Clip rounded square -->
+    <clipPath id="sq">
+      <rect width="256" height="256" rx="42"/>
+    </clipPath>
+  </defs>
+
+  <!-- === BACKGROUND === -->
+  <rect width="256" height="256" rx="42" fill="url(#bg)"/>
+
+  <g clip-path="url(#sq)">
+
+    <!-- Moon soft atmosphere -->
+    <circle cx="128" cy="84" r="100" fill="url(#moonAtmos)" filter="url(#moonBlur)"/>
+
+    <!-- Moon discs (concentric, painterly) -->
+    <circle cx="128" cy="80" r="56"  fill="#ede5ca" fill-opacity="0.055"/>
+    <circle cx="128" cy="80" r="42"  fill="#ede5ca" fill-opacity="0.060"/>
+    <circle cx="128" cy="80" r="30"  fill="#f0e8d2" fill-opacity="0.065"/>
+    <circle cx="128" cy="80" r="18"  fill="#f4ecd8" fill-opacity="0.070"/>
+    <!-- Moon thin ring accent -->
+    <circle cx="128" cy="80" r="54"  fill="none" stroke="#ede5ca" stroke-width="0.5" stroke-opacity="0.18"/>
+    <circle cx="128" cy="80" r="70"  fill="none" stroke="#ede5ca" stroke-width="0.3" stroke-opacity="0.08"/>
+
+    <!-- Ground shadow -->
+    <ellipse cx="128" cy="235" rx="52" ry="7" fill="#000" fill-opacity="0.22"/>
+
+    <!-- ===================== TREE ===================== -->
+
+    <!-- Trunk (3-layer for dimension) -->
+    <path d="M 122 238 Q 124 195 125 158 Q 124 124 125 98"
+          stroke="#1e2e20" stroke-width="14" stroke-linecap="round" fill="none"/>
+    <path d="M 127 238 Q 129 195 129 158 Q 128 124 128 98"
+          stroke="#283c2a" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <path d="M 130 238 Q 131 195 131 158 Q 130 124 130 98"
+          stroke="#364e38" stroke-width="5"  stroke-linecap="round" fill="none"/>
+
+    <!-- Lower main branches -->
+    <path d="M 127 170 Q 104 152 80 132"
+          stroke="#263828" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <path d="M 129 166 Q 152 149 174 130"
+          stroke="#263828" stroke-width="8" stroke-linecap="round" fill="none"/>
+
+    <!-- Mid main branches -->
+    <path d="M 127 142 Q 107 124 88 104"
+          stroke="#2c4030" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <path d="M 129 138 Q 148 120 166 100"
+          stroke="#2c4030" stroke-width="6" stroke-linecap="round" fill="none"/>
+
+    <!-- Upper main branches -->
+    <path d="M 127 114 Q 112 96 97 78"
+          stroke="#344a36" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M 129 110 Q 144 92 160 74"
+          stroke="#344a36" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+
+    <!-- Top branch -->
+    <path d="M 128 102 Q 128 78 128 56"
+          stroke="#3c5440" stroke-width="4"  stroke-linecap="round" fill="none"/>
+
+    <!-- Sub-branches: lower-left cluster -->
+    <path d="M 80 132 Q 63 120 50 108"
+          stroke="#324438" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M 80 132 Q 77 114 74 96"
+          stroke="#324438" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+
+    <!-- Sub-branches: lower-right cluster -->
+    <path d="M 174 130 Q 190 118 204 106"
+          stroke="#324438" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M 174 130 Q 177 112 180 94"
+          stroke="#324438" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+
+    <!-- Sub-branches: mid-left cluster -->
+    <path d="M 88 104 Q 72 90 60 74"
+          stroke="#3a5040" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+    <path d="M 88 104 Q 86 88 84 72"
+          stroke="#3a5040" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+
+    <!-- Sub-branches: mid-right cluster -->
+    <path d="M 166 100 Q 180 86 192 70"
+          stroke="#3a5040" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+    <path d="M 166 100 Q 168 84 170 68"
+          stroke="#3a5040" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+
+    <!-- Sub-branches: upper-left cluster -->
+    <path d="M 97 78 Q 83 64 72 50"
+          stroke="#466050" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+    <path d="M 97 78 Q 94 62 91 48"
+          stroke="#466050" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+
+    <!-- Sub-branches: upper-right cluster -->
+    <path d="M 160 74 Q 173 60 184 46"
+          stroke="#466050" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+    <path d="M 160 74 Q 163 58 166 44"
+          stroke="#466050" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+
+    <!-- ===================== LEAF CLUSTERS ===================== -->
+    <!-- Each cluster = overlapping oval leaflets (compound-leaf feel) -->
+
+    <!-- TIER 1 — lower, darkest green -->
+    <!-- Lower-left A (50, 108) -->
+    <g transform="translate(50,108)" fill="#456848" opacity="0.92">
+      <ellipse cx="0"  cy="-10" rx="8"   ry="4.5" transform="rotate(-8)"/>
+      <ellipse cx="-9" cy="-5"  rx="7"   ry="4"   transform="rotate(-44)"/>
+      <ellipse cx="9"  cy="-5"  rx="7.5" ry="4"   transform="rotate(28)"/>
+      <ellipse cx="-5" cy="-16" rx="6.5" ry="3.5" transform="rotate(-18)"/>
+      <ellipse cx="6"  cy="-15" rx="6"   ry="3.5" transform="rotate(14)"/>
+      <ellipse cx="0"  cy="-20" rx="6.5" ry="4"/>
+    </g>
+
+    <!-- Lower-left B (74, 96) -->
+    <g transform="translate(74,96)" fill="#456848" opacity="0.92">
+      <ellipse cx="0"   cy="-10" rx="8"   ry="4.5" transform="rotate(-4)"/>
+      <ellipse cx="-9"  cy="-4"  rx="7"   ry="4"   transform="rotate(-40)"/>
+      <ellipse cx="9"   cy="-5"  rx="7"   ry="4"   transform="rotate(32)"/>
+      <ellipse cx="-5"  cy="-16" rx="6"   ry="3.5" transform="rotate(-14)"/>
+      <ellipse cx="6"   cy="-15" rx="6"   ry="3.5" transform="rotate(18)"/>
+      <ellipse cx="0"   cy="-20" rx="6"   ry="3.5"/>
+    </g>
+
+    <!-- Lower-right A (204, 106) -->
+    <g transform="translate(204,106)" fill="#456848" opacity="0.92">
+      <ellipse cx="0"  cy="-10" rx="8"   ry="4.5" transform="rotate(8)"/>
+      <ellipse cx="9"  cy="-5"  rx="7"   ry="4"   transform="rotate(44)"/>
+      <ellipse cx="-9" cy="-5"  rx="7.5" ry="4"   transform="rotate(-28)"/>
+      <ellipse cx="5"  cy="-16" rx="6.5" ry="3.5" transform="rotate(18)"/>
+      <ellipse cx="-6" cy="-15" rx="6"   ry="3.5" transform="rotate(-14)"/>
+      <ellipse cx="0"  cy="-20" rx="6.5" ry="4"/>
+    </g>
+
+    <!-- Lower-right B (180, 94) -->
+    <g transform="translate(180,94)" fill="#456848" opacity="0.92">
+      <ellipse cx="0"  cy="-10" rx="8"   ry="4.5" transform="rotate(4)"/>
+      <ellipse cx="9"  cy="-4"  rx="7"   ry="4"   transform="rotate(40)"/>
+      <ellipse cx="-9" cy="-5"  rx="7"   ry="4"   transform="rotate(-32)"/>
+      <ellipse cx="5"  cy="-16" rx="6"   ry="3.5" transform="rotate(14)"/>
+      <ellipse cx="-6" cy="-15" rx="6"   ry="3.5" transform="rotate(-18)"/>
+      <ellipse cx="0"  cy="-20" rx="6"   ry="3.5"/>
+    </g>
+
+    <!-- TIER 2 — mid, medium green -->
+    <!-- Mid-left A (60, 74) -->
+    <g transform="translate(60,74)" fill="#527e58" opacity="0.88">
+      <ellipse cx="0"   cy="-11" rx="8.5" ry="5"   transform="rotate(-14)"/>
+      <ellipse cx="-11" cy="-5"  rx="7.5" ry="4.5" transform="rotate(-50)"/>
+      <ellipse cx="10"  cy="-6"  rx="7.5" ry="4.5" transform="rotate(24)"/>
+      <ellipse cx="-7"  cy="-18" rx="6.5" ry="4"   transform="rotate(-22)"/>
+      <ellipse cx="7"   cy="-17" rx="6.5" ry="4"   transform="rotate(10)"/>
+      <ellipse cx="0"   cy="-23" rx="7"   ry="4.5"/>
+      <ellipse cx="-4"  cy="-28" rx="5.5" ry="3.5" transform="rotate(-12)"/>
+      <ellipse cx="4"   cy="-28" rx="5.5" ry="3.5" transform="rotate(12)"/>
+    </g>
+
+    <!-- Mid-left B (84, 72) -->
+    <g transform="translate(84,72)" fill="#527e58" opacity="0.88">
+      <ellipse cx="0"  cy="-11" rx="8.5" ry="5"   transform="rotate(-6)"/>
+      <ellipse cx="-10" cy="-5" rx="7"   ry="4.5" transform="rotate(-43)"/>
+      <ellipse cx="10" cy="-6"  rx="7"   ry="4.5" transform="rotate(30)"/>
+      <ellipse cx="-6" cy="-18" rx="6"   ry="4"   transform="rotate(-18)"/>
+      <ellipse cx="7"  cy="-17" rx="6"   ry="4"   transform="rotate(14)"/>
+      <ellipse cx="0"  cy="-23" rx="6.5" ry="4.5"/>
+      <ellipse cx="-3" cy="-28" rx="5"   ry="3"   transform="rotate(-8)"/>
+      <ellipse cx="4"  cy="-28" rx="5"   ry="3"   transform="rotate(10)"/>
+    </g>
+
+    <!-- Mid-right A (192, 70) -->
+    <g transform="translate(192,70)" fill="#527e58" opacity="0.88">
+      <ellipse cx="0"  cy="-11" rx="8.5" ry="5"   transform="rotate(14)"/>
+      <ellipse cx="11" cy="-5"  rx="7.5" ry="4.5" transform="rotate(50)"/>
+      <ellipse cx="-10" cy="-6" rx="7.5" ry="4.5" transform="rotate(-24)"/>
+      <ellipse cx="7"  cy="-18" rx="6.5" ry="4"   transform="rotate(22)"/>
+      <ellipse cx="-7" cy="-17" rx="6.5" ry="4"   transform="rotate(-10)"/>
+      <ellipse cx="0"  cy="-23" rx="7"   ry="4.5"/>
+      <ellipse cx="4"  cy="-28" rx="5.5" ry="3.5" transform="rotate(12)"/>
+      <ellipse cx="-4" cy="-28" rx="5.5" ry="3.5" transform="rotate(-12)"/>
+    </g>
+
+    <!-- Mid-right B (170, 68) -->
+    <g transform="translate(170,68)" fill="#527e58" opacity="0.88">
+      <ellipse cx="0"  cy="-11" rx="8.5" ry="5"   transform="rotate(6)"/>
+      <ellipse cx="10" cy="-5"  rx="7"   ry="4.5" transform="rotate(43)"/>
+      <ellipse cx="-10" cy="-6" rx="7"   ry="4.5" transform="rotate(-30)"/>
+      <ellipse cx="6"  cy="-18" rx="6"   ry="4"   transform="rotate(18)"/>
+      <ellipse cx="-7" cy="-17" rx="6"   ry="4"   transform="rotate(-14)"/>
+      <ellipse cx="0"  cy="-23" rx="6.5" ry="4.5"/>
+      <ellipse cx="3"  cy="-28" rx="5"   ry="3"   transform="rotate(8)"/>
+      <ellipse cx="-4" cy="-28" rx="5"   ry="3"   transform="rotate(-10)"/>
+    </g>
+
+    <!-- TIER 3 — upper, brighter green -->
+    <!-- Upper-left A (72, 50) -->
+    <g transform="translate(72,50)" fill="#649c6c" opacity="0.82">
+      <ellipse cx="0"   cy="-12" rx="9"   ry="5"   transform="rotate(-20)"/>
+      <ellipse cx="-12" cy="-6"  rx="8"   ry="4.5" transform="rotate(-55)"/>
+      <ellipse cx="11"  cy="-7"  rx="8"   ry="4.5" transform="rotate(18)"/>
+      <ellipse cx="-8"  cy="-20" rx="7"   ry="4"   transform="rotate(-26)"/>
+      <ellipse cx="8"   cy="-19" rx="7"   ry="4"   transform="rotate(8)"/>
+      <ellipse cx="0"   cy="-25" rx="7.5" ry="5"/>
+      <ellipse cx="-5"  cy="-31" rx="6.5" ry="4"   transform="rotate(-16)"/>
+      <ellipse cx="5"   cy="-31" rx="6.5" ry="4"   transform="rotate(16)"/>
+      <ellipse cx="0"   cy="-37" rx="6"   ry="4"/>
+    </g>
+
+    <!-- Upper-left B (91, 48) -->
+    <g transform="translate(91,48)" fill="#649c6c" opacity="0.82">
+      <ellipse cx="0"   cy="-12" rx="9"   ry="5"   transform="rotate(-10)"/>
+      <ellipse cx="-11" cy="-6"  rx="7.5" ry="4.5" transform="rotate(-46)"/>
+      <ellipse cx="11"  cy="-7"  rx="7.5" ry="4.5" transform="rotate(28)"/>
+      <ellipse cx="-7"  cy="-20" rx="6.5" ry="4"   transform="rotate(-20)"/>
+      <ellipse cx="8"   cy="-19" rx="6.5" ry="4"   transform="rotate(14)"/>
+      <ellipse cx="0"   cy="-25" rx="7"   ry="5"/>
+      <ellipse cx="-4"  cy="-31" rx="6"   ry="3.5" transform="rotate(-10)"/>
+      <ellipse cx="5"   cy="-31" rx="6"   ry="3.5" transform="rotate(12)"/>
+      <ellipse cx="0"   cy="-36" rx="5.5" ry="3.5"/>
+    </g>
+
+    <!-- Upper-right A (184, 46) -->
+    <g transform="translate(184,46)" fill="#649c6c" opacity="0.82">
+      <ellipse cx="0"  cy="-12" rx="9"   ry="5"   transform="rotate(20)"/>
+      <ellipse cx="12" cy="-6"  rx="8"   ry="4.5" transform="rotate(55)"/>
+      <ellipse cx="-11" cy="-7" rx="8"   ry="4.5" transform="rotate(-18)"/>
+      <ellipse cx="8"  cy="-20" rx="7"   ry="4"   transform="rotate(26)"/>
+      <ellipse cx="-8" cy="-19" rx="7"   ry="4"   transform="rotate(-8)"/>
+      <ellipse cx="0"  cy="-25" rx="7.5" ry="5"/>
+      <ellipse cx="5"  cy="-31" rx="6.5" ry="4"   transform="rotate(16)"/>
+      <ellipse cx="-5" cy="-31" rx="6.5" ry="4"   transform="rotate(-16)"/>
+      <ellipse cx="0"  cy="-37" rx="6"   ry="4"/>
+    </g>
+
+    <!-- Upper-right B (165, 44) -->
+    <g transform="translate(165,44)" fill="#649c6c" opacity="0.82">
+      <ellipse cx="0"  cy="-12" rx="9"   ry="5"   transform="rotate(10)"/>
+      <ellipse cx="11" cy="-6"  rx="7.5" ry="4.5" transform="rotate(46)"/>
+      <ellipse cx="-11" cy="-7" rx="7.5" ry="4.5" transform="rotate(-28)"/>
+      <ellipse cx="7"  cy="-20" rx="6.5" ry="4"   transform="rotate(20)"/>
+      <ellipse cx="-8" cy="-19" rx="6.5" ry="4"   transform="rotate(-14)"/>
+      <ellipse cx="0"  cy="-25" rx="7"   ry="5"/>
+      <ellipse cx="4"  cy="-31" rx="6"   ry="3.5" transform="rotate(10)"/>
+      <ellipse cx="-5" cy="-31" rx="6"   ry="3.5" transform="rotate(-12)"/>
+      <ellipse cx="0"  cy="-36" rx="5.5" ry="3.5"/>
+    </g>
+
+    <!-- TIER 4 — crown, brightest -->
+    <!-- Crown (128, 56) -->
+    <g transform="translate(128,56)" fill="#7cba84" opacity="0.78">
+      <ellipse cx="0"   cy="-13" rx="9.5" ry="5.5"/>
+      <ellipse cx="-13" cy="-7"  rx="8.5" ry="5"   transform="rotate(-56)"/>
+      <ellipse cx="13"  cy="-7"  rx="8.5" ry="5"   transform="rotate(56)"/>
+      <ellipse cx="-9"  cy="-22" rx="7.5" ry="4.5" transform="rotate(-26)"/>
+      <ellipse cx="9"   cy="-22" rx="7.5" ry="4.5" transform="rotate(26)"/>
+      <ellipse cx="0"   cy="-28" rx="8.5" ry="5.5"/>
+      <ellipse cx="-6"  cy="-35" rx="7"   ry="4.5" transform="rotate(-18)"/>
+      <ellipse cx="6"   cy="-35" rx="7"   ry="4.5" transform="rotate(18)"/>
+      <ellipse cx="0"   cy="-42" rx="6.5" ry="4.5"/>
+      <ellipse cx="-4"  cy="-48" rx="5.5" ry="3.5" transform="rotate(-12)"/>
+      <ellipse cx="4"   cy="-48" rx="5.5" ry="3.5" transform="rotate(12)"/>
+      <ellipse cx="0"   cy="-53" rx="5"   ry="3.5"/>
+    </g>
+
+    <!-- Leaf glow (soft additive light on canopy) -->
+    <circle cx="128" cy="90" r="72" fill="url(#leafGlow)"/>
+
+    <!-- ===================== FLOATING ELEMENTS ===================== -->
+
+    <!-- Ash samaras (winged seeds) — elongated paddle shapes -->
+    <g fill="#c4a240" fill-opacity="0.60">
+      <ellipse cx="36"  cy="152" rx="13" ry="3.5" transform="rotate(-28,  36,152)"/>
+      <ellipse cx="218" cy="160" rx="12" ry="3"   transform="rotate( 42, 218,160)"/>
+      <ellipse cx="24"  cy="192" rx="11" ry="3"   transform="rotate( 12,  24,192)"/>
+      <ellipse cx="230" cy="138" rx="11" ry="3"   transform="rotate(-52, 230,138)"/>
+      <ellipse cx="44"  cy="220" rx="11" ry="3"   transform="rotate(-14,  44,220)"/>
+      <ellipse cx="210" cy="212" rx="11" ry="3"   transform="rotate( 24, 210,212)"/>
+      <ellipse cx="16"  cy="118" rx="10" ry="2.5" transform="rotate( 20,  16,118)"/>
+      <ellipse cx="238" cy="112" rx="10" ry="2.5" transform="rotate(-35, 238,112)"/>
+    </g>
+
+    <!-- Detached autumn leaves -->
+    <g fill="#8c6830" fill-opacity="0.48">
+      <ellipse cx="30"  cy="126" rx="10" ry="5.5" transform="rotate(-22,  30,126)"/>
+      <ellipse cx="224" cy="180" rx="9"  ry="5"   transform="rotate( 36, 224,180)"/>
+      <ellipse cx="222" cy="104" rx="8"  ry="4.5" transform="rotate(-42, 222,104)"/>
+      <ellipse cx="28"  cy="90"  rx="8"  ry="4.5" transform="rotate( 32,  28, 90)"/>
+      <ellipse cx="18"  cy="170" rx="7"  ry="4"   transform="rotate( 10,  18,170)"/>
+      <ellipse cx="238" cy="196" rx="7"  ry="4"   transform="rotate(-18, 238,196)"/>
+    </g>
+
+    <!-- Ember / firefly particles (glowing) -->
+    <g filter="url(#pGlow)">
+      <circle cx="86"  cy="170" r="3.5" fill="#e8c058" fill-opacity="0.82"/>
+      <circle cx="164" cy="157" r="3"   fill="#e8c058" fill-opacity="0.72"/>
+      <circle cx="62"  cy="142" r="2.5" fill="#e0b040" fill-opacity="0.68"/>
+      <circle cx="192" cy="174" r="3.5" fill="#e8c058" fill-opacity="0.78"/>
+      <circle cx="144" cy="188" r="2.5" fill="#e0b040" fill-opacity="0.52"/>
+      <circle cx="106" cy="198" r="3"   fill="#e8c058" fill-opacity="0.62"/>
+      <circle cx="42"  cy="110" r="2"   fill="#d0a038" fill-opacity="0.58"/>
+      <circle cx="212" cy="118" r="2.5" fill="#d0a038" fill-opacity="0.62"/>
+      <circle cx="118" cy="214" r="2"   fill="#e8c058" fill-opacity="0.46"/>
+      <circle cx="176" cy="210" r="2.5" fill="#d0a038" fill-opacity="0.52"/>
+      <circle cx="70"  cy="208" r="2"   fill="#d0a038" fill-opacity="0.42"/>
+      <circle cx="200" cy="228" r="1.8" fill="#c89030" fill-opacity="0.38"/>
+      <circle cx="56"  cy="232" r="1.8" fill="#c89030" fill-opacity="0.36"/>
+    </g>
+
+  </g><!-- end clip group -->
+
+  <!-- Outer border (subtle frame) -->
+  <rect width="256" height="256" rx="42"
+        fill="none" stroke="#2e4834" stroke-width="2.5" stroke-opacity="0.55"/>
+</svg>

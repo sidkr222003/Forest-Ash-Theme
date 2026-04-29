@@ -2,7 +2,7 @@
 
 A curated set of dark and light, eye-friendly themes for Visual Studio Code, inspired by forest ash textures and anime mood boards. Each palette is designed for readability across long coding sessions.
 
-![Forest Ash Theme preview](Preview.png)
+![Forest Ash Theme preview](https://raw.githubusercontent.com/sidkr222003/Forest-Ash-Theme/main/resources/Preview.png)
 
 ## Theme Collection
 
@@ -10,7 +10,7 @@ This extension includes 21 hand-crafted themes plus unlimited custom themes you 
 
 ### Dark Palette Sheet
 
-![Forest Ash dark palettes](dark.png)
+![Forest Ash dark palettes](https://raw.githubusercontent.com/sidkr222003/Forest-Ash-Theme/main/resources/dark.png)
 
 #### Dark Themes
 
@@ -28,7 +28,7 @@ This extension includes 21 hand-crafted themes plus unlimited custom themes you 
 
 ### Light Palette Sheet
 
-![Forest Ash light palettes](light.png)
+![Forest Ash light palettes](https://raw.githubusercontent.com/sidkr222003/Forest-Ash-Theme/main/resources/light.png)
 
 #### Light Themes
 
@@ -154,10 +154,11 @@ forest-ash-theme/
 │   ├── *.json                # 21 hand-crafted static themes
 │   └── custom/               # runtime-generated user themes (git-ignored)
 │       └── .gitkeep
-├── icon.png
-├── Preview.png
-├── dark.png
-├── light.png
+├── resources/
+│   ├── icon.png
+│   ├── Preview.png
+│   ├── dark.png
+│   └── light.png
 └── README.md
 ```
 
