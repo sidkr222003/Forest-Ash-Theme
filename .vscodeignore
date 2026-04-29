@@ -1,6 +1,27 @@
-node_modules
-.vscode
+# Exclude everything in node_modules EXCEPT chroma-js
+node_modules/**
+!node_modules/chroma-js/**
+
+# Dev/editor clutter
+.vscode/**
 *.log
 **/.DS_Store
-**/.git
+**/.git/**
 **/.gitignore
+
+# Dev dependencies not needed at runtime
+.vscodeignore
+*.vsix
+**/*.map
+**/test/**
+**/tests/**
+**/*.test.js
+**/*.spec.js
+**/jest.config.*
+**/tsconfig.*
+README.md
+CHANGELOG.md
+
+# Exclude generated user themes but keep the folder placeholder
+themes/custom/**
+!themes/custom/.gitkeep
