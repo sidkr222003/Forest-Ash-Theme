@@ -74,7 +74,7 @@ function buildPalette(baseHex, isDark) {
     const fg1 = hsl(H, ss(7), fgL(65));
     const fg2 = hsl(H, ss(5), fgL(44));
 
-    // ── accent ───────────────────────────────────────────────────────────
+    // ── accent ──────────────────────────────────────────────────────────
     const accent = hsl(H, ss(44), sl(62));
     const accentBright = hsl(H, ss(50), sl(68));
     const accentDim = hsl(H, ss(38), sl(55));
@@ -275,6 +275,7 @@ function buildColors(p) {
     'list.activeSelectionBackground': alpha(accent, 0.24),
     'list.activeSelectionForeground': fg0,
     'list.activeSelectionIconForeground': fg0,
+    'list.activeSelectionBorder': accent, // FIX: Show bottom border on active list items
     'list.dropBackground': alpha(accent, 0.14),
     'list.focusBackground': alpha(accent, 0.18),
     'list.focusForeground': fg0,
@@ -306,7 +307,7 @@ function buildColors(p) {
     'activityBar.inactiveForeground': fg2,
     'activityBar.dropBorder': '#00000000',
     'activityBar.activeBackground': alpha(accent, 0.10),
-    'activityBar.activeBorder': '#00000000',
+    'activityBar.activeBorder': accent, // FIX: Show bottom border on active activity bar item
     'activityBar.activeFocusBorder': '#00000000',
     'activityBarBadge.background': buttonAccent,
     'activityBarBadge.foreground': '#ffffff',
@@ -655,7 +656,7 @@ function buildColors(p) {
     'terminal.inactiveSelectionBackground': alpha(accent, 0.14),
     'terminal.selectionBackground': alpha(accent, 0.28),
     'terminal.selectionForeground': fg0,
-    'terminal.tab.activeBorder': '#00000000', // Removed terminal tab border
+    'terminal.tab.activeBorder': accent, // FIX: Show bottom border on active terminal tab
     'terminal.ansiBlack': termBlack,
     'terminal.ansiBrightBlack': fg2,
     'terminal.ansiRed': termRed,
