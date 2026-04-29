@@ -7,7 +7,7 @@
 
 const chroma = require('chroma-js');
 
-// ─── low-level helpers ────────────────────────────────────────────────────────
+// ─── low-level helpers ───────────────────────────────────────────────────────
 
 function hsl(h, s, l) {
   h = ((h % 360) + 360) % 360;
@@ -44,7 +44,7 @@ function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
-// ─── Forest Ash palette builder ───────────────────────────────────────────────
+// ─── Forest Ash palette builder ──────────────────────────────────────────────
 
 function buildPalette(baseHex, isDark) {
   const { h: H, s: S, l: L } = hslOf(baseHex);
@@ -58,7 +58,7 @@ function buildPalette(baseHex, isDark) {
   const sl = (base) => clamp(base + lShift * 0.5, 0, 100);
 
   if (isDark) {
-    // ── backgrounds ──────────────────────────────────────────────────────
+    // ── backgrounds ─────────────────────────────────────────────────────
     const bgL = (base) => clamp(base + lShift * 0.3, 6, 22);
 
     const bg0 = hsl(H, ss(8), bgL(10));
@@ -74,7 +74,7 @@ function buildPalette(baseHex, isDark) {
     const fg1 = hsl(H, ss(7), fgL(65));
     const fg2 = hsl(H, ss(5), fgL(44));
 
-    // ── accent ────────────────────────────────────────────────────────────
+    // ── accent ───────────────────────────────────────────────────────────
     const accent = hsl(H, ss(44), sl(62));
     const accentBright = hsl(H, ss(50), sl(68));
     const accentDim = hsl(H, ss(38), sl(55));
@@ -175,7 +175,7 @@ function buildPalette(baseHex, isDark) {
   }
 }
 
-// ─── VS Code workbench colors ────────────────────────────────────────────────
+// ── VS Code workbench colors ────────────────────────────────────────────────
 
 function buildColors(p) {
   const {
@@ -196,7 +196,7 @@ function buildColors(p) {
 
   return {
     // ── Base ──────────────────────────────────────────────────────────────
-    'focusBorder': '#00000000', // FIX: Removed focus border box
+    'focusBorder': '#00000000', // Removed focus box
     'foreground': fg0,
     'disabledForeground': fg2,
     'widget.shadow': shadow,
@@ -214,7 +214,7 @@ function buildColors(p) {
     'textPreformat.foreground': fg0,
     'textSeparator.foreground': '#00000000',
 
-    // ── Toolbar ──────────────────────────────────────────────────────────
+    // ── Toolbar ─────────────────────────────────────────────────────────
     'toolbar.hoverBackground': alpha(accent, 0.10),
     'toolbar.activeBackground': alpha(accent, 0.18),
 
@@ -278,7 +278,7 @@ function buildColors(p) {
     'list.dropBackground': alpha(accent, 0.14),
     'list.focusBackground': alpha(accent, 0.18),
     'list.focusForeground': fg0,
-    'list.focusOutline': '#00000000', // FIX: Removed focus outline box
+    'list.focusOutline': '#00000000', // Removed focus box
     'list.highlightForeground': accentBright,
     'list.hoverBackground': alpha(accent, 0.10),
     'list.hoverForeground': fg0,
@@ -324,7 +324,7 @@ function buildColors(p) {
     'sideBarSectionHeader.foreground': fg1,
     'sideBarSectionHeader.border': '#00000000',
 
-    // ── Minimap ───────────────────────────────────────────────────────────
+    // ── Minimap ──────────────────────────────────────────────────────────
     'minimap.findMatchHighlight': alpha(accentBright, 0.60),
     'minimap.selectionHighlight': alpha(accent, 0.40),
     'minimap.errorHighlight': termRed,
@@ -336,7 +336,7 @@ function buildColors(p) {
     'minimapSlider.activeBackground': alpha(accent, 0.55),
 
     // ── Editor Groups / Tabs ──────────────────────────────────────────────
-    'editorGroup.border': '#00000000',
+    'editorGroup.border': '#00000000', // Removed editor group border
     'editorGroup.dropBackground': alpha(accent, 0.12),
     'editorGroup.emptyBackground': bg0,
     'editorGroup.focusedEmptyBorder': '#00000000',
@@ -346,9 +346,12 @@ function buildColors(p) {
     'editorGroupHeader.tabsBackground': bg1,
     'editorGroupHeader.noTabsBackground': bg1,
     'editorGroupHeader.border': '#00000000',
+    
+    // TABS - ONLY BOTTOM BORDER
     'tab.activeBackground': bg0,
     'tab.activeForeground': fg0,
-    'tab.activeBorder': accent, // Bottom bar only
+    'tab.border': '#00000000', // REMOVE rectangular border
+    'tab.activeBorder': accent, // SHOW ONLY BOTTOM BORDER
     'tab.activeBorderTop': '#00000000', 
     'tab.inactiveBackground': bg1,
     'tab.inactiveForeground': fg2,
@@ -458,7 +461,7 @@ function buildColors(p) {
     'diffEditorOverview.insertedForeground': alpha(termGreen, 0.70),
     'diffEditorOverview.removedForeground': alpha(termRed, 0.70),
 
-    // ── Peek View ─────────────────────────────────────────────────────────
+    // ── Peek View ────────────────────────────────────────────────────────
     'peekView.border': '#00000000',
     'peekViewEditor.background': bg0,
     'peekViewEditor.matchHighlightBackground': alpha(accent, 0.26),
@@ -641,7 +644,7 @@ function buildColors(p) {
     // ── Source Control ────────────────────────────────────────────────────
     'scm.providerBorder': '#00000000',
 
-    // ── Terminal ─────────────────────────────────────────────────────────
+    // ── Terminal ────────────────────────────────────────────────────────
     'terminal.background': bg0,
     'terminal.foreground': fg0,
     'terminal.dropBackground': alpha(accent, 0.10),
@@ -652,7 +655,7 @@ function buildColors(p) {
     'terminal.inactiveSelectionBackground': alpha(accent, 0.14),
     'terminal.selectionBackground': alpha(accent, 0.28),
     'terminal.selectionForeground': fg0,
-    'terminal.tab.activeBorder': '#00000000', // FIX: Removed terminal tab border
+    'terminal.tab.activeBorder': '#00000000', // Removed terminal tab border
     'terminal.ansiBlack': termBlack,
     'terminal.ansiBrightBlack': fg2,
     'terminal.ansiRed': termRed,
@@ -840,7 +843,7 @@ function buildColors(p) {
     'minimapGutter.deletedBackground': alpha(termRed, 0.80),
     'minimapGutter.modifiedBackground': alpha(accent, 0.80),
 
-    // ── Problems ──────────────────────────────────────────────────────────
+    // ─ Problems ──────────────────────────────────────────────────────────
     'problemsErrorIcon.foreground': termRed,
     'problemsWarningIcon.foreground': termYellow,
     'problemsInfoIcon.foreground': termBlue,
@@ -865,7 +868,7 @@ function buildColors(p) {
     'chat.avatarBackground': alpha(accent, 0.18),
     'chat.avatarForeground': fg0,
 
-    // ── Extension ───────────────────────────────────────────────────────
+    // ─ Extension ───────────────────────────────────────────────────────
     'extensionButton.prominentBackground': buttonAccent,
     'extensionButton.prominentForeground': '#ffffff',
     'extensionButton.prominentHoverBackground': accentDim,
@@ -884,8 +887,8 @@ function buildColors(p) {
     'ports.iconRunningProcessForeground': termGreen,
 
     // ── Contast ───────────────────────────────────────────────────────────
-    'contrastBorder': '#00000000', // FIX: Removed contrast border
-    'contrastActiveBorder': '#00000000', // FIX: Removed contrast active border
+    'contrastBorder': '#00000000',
+    'contrastActiveBorder': '#00000000',
 
     // ── Sash ──────────────────────────────────────────────────────────────
     'sash.hoverBorder': '#00000000',
@@ -894,7 +897,7 @@ function buildColors(p) {
     'profileBadge.background': buttonAccent,
     'profileBadge.foreground': '#ffffff',
 
-    // ── Notebook ──────────────────────────────────────────────────────────
+    // ─ Notebook ──────────────────────────────────────────────────────────
     'notebook.editorBackground': bg0,
     'notebook.cellBackground': bg0,
     'notebook.cellBorderColor': '#00000000',
@@ -927,7 +930,7 @@ function buildColors(p) {
   };
 }
 
-// ─── token colors ─────────────────────────────────────────────────────────────
+// ── token colors ─────────────────────────────────────────────────────────────
 
 function buildTokenColors(p) {
   const {
