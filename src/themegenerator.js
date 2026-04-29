@@ -58,7 +58,7 @@ function buildPalette(baseHex, isDark) {
   const sl = (base) => clamp(base + lShift * 0.5, 0, 100);
 
   if (isDark) {
-    // ── backgrounds ─────────────────────────────────────────────────────
+    // ─ backgrounds ─────────────────────────────────────────────────────
     const bgL = (base) => clamp(base + lShift * 0.3, 6, 22);
 
     const bg0 = hsl(H, ss(8), bgL(10));
@@ -67,7 +67,7 @@ function buildPalette(baseHex, isDark) {
     const bg3 = hsl(H, ss(7), bgL(18));
     const bg4 = hsl(H, ss(9), bgL(14));
 
-    // ── foregrounds ───────────────────────────────────────────────────────
+    // ─ foregrounds ───────────────────────────────────────────────────────
     const fgL = (base) => clamp(base - lShift * 0.2, 38, 92);
 
     const fg0 = hsl(H, ss(9), fgL(82));
@@ -175,7 +175,7 @@ function buildPalette(baseHex, isDark) {
   }
 }
 
-// ── VS Code workbench colors ────────────────────────────────────────────────
+// ─ VS Code workbench colors ────────────────────────────────────────────────
 
 function buildColors(p) {
   const {
@@ -196,7 +196,7 @@ function buildColors(p) {
 
   return {
     // ── Base ──────────────────────────────────────────────────────────────
-    'focusBorder': '#00000000', // Removed focus box
+    'focusBorder': '#00000000',
     'foreground': fg0,
     'disabledForeground': fg2,
     'widget.shadow': shadow,
@@ -205,7 +205,7 @@ function buildColors(p) {
     'errorForeground': termRed,
     'icon.foreground': fg1,
 
-    // ── Text ──────────────────────────────────────────────────────────────
+    // ─ Text ──────────────────────────────────────────────────────────────
     'textBlockQuote.background': bg2,
     'textBlockQuote.border': '#00000000',
     'textCodeBlock.background': bg2,
@@ -275,11 +275,11 @@ function buildColors(p) {
     'list.activeSelectionBackground': alpha(accent, 0.24),
     'list.activeSelectionForeground': fg0,
     'list.activeSelectionIconForeground': fg0,
-    'list.activeSelectionBorder': accent, // FIX: Show bottom border on active list items
+    'list.activeSelectionBorder': accent,
     'list.dropBackground': alpha(accent, 0.14),
     'list.focusBackground': alpha(accent, 0.18),
     'list.focusForeground': fg0,
-    'list.focusOutline': '#00000000', // Removed focus box
+    'list.focusOutline': '#00000000',
     'list.highlightForeground': accentBright,
     'list.hoverBackground': alpha(accent, 0.10),
     'list.hoverForeground': fg0,
@@ -307,7 +307,7 @@ function buildColors(p) {
     'activityBar.inactiveForeground': fg2,
     'activityBar.dropBorder': '#00000000',
     'activityBar.activeBackground': alpha(accent, 0.10),
-    'activityBar.activeBorder': accent, // FIX: Show bottom border on active activity bar item
+    'activityBar.activeBorder': accent,
     'activityBar.activeFocusBorder': '#00000000',
     'activityBarBadge.background': buttonAccent,
     'activityBarBadge.foreground': '#ffffff',
@@ -337,7 +337,7 @@ function buildColors(p) {
     'minimapSlider.activeBackground': alpha(accent, 0.55),
 
     // ── Editor Groups / Tabs ──────────────────────────────────────────────
-    'editorGroup.border': '#00000000', // Removed editor group border
+    'editorGroup.border': '#00000000',
     'editorGroup.dropBackground': alpha(accent, 0.12),
     'editorGroup.emptyBackground': bg0,
     'editorGroup.focusedEmptyBorder': '#00000000',
@@ -348,11 +348,11 @@ function buildColors(p) {
     'editorGroupHeader.noTabsBackground': bg1,
     'editorGroupHeader.border': '#00000000',
     
-    // TABS - ONLY BOTTOM BORDER
+    // EDITOR TABS - BOTTOM BORDER ONLY
     'tab.activeBackground': bg0,
     'tab.activeForeground': fg0,
-    'tab.border': '#00000000', // REMOVE rectangular border
-    'tab.activeBorder': accent, // SHOW ONLY BOTTOM BORDER
+    'tab.border': '#00000000', 
+    'tab.activeBorder': accent, 
     'tab.activeBorderTop': '#00000000', 
     'tab.inactiveBackground': bg1,
     'tab.inactiveForeground': fg2,
@@ -436,7 +436,7 @@ function buildColors(p) {
     'editorHoverWidget.highlightForeground': accentBright,
     'editorHoverWidget.statusBarBackground': bg3,
 
-    // ── Gutter ────────────────────────────────────────────────────────────
+    // ── Gutter ───────────────────────────────────────────────────────────
     'editorGutter.background': bg0,
     'editorGutter.modifiedBackground': alpha(accent, 0.80),
     'editorGutter.addedBackground': alpha(termGreen, 0.80),
@@ -488,10 +488,10 @@ function buildColors(p) {
     'merge.commonHeaderBackground': alpha(accent, 0.18),
     'merge.commonContentBackground': alpha(accent, 0.08),
 
-    // ── Panel ─────────────────────────────────────────────────────────────
+    // ── Panel (Terminal, Chat, Sessions, etc) ────────────────────────────
     'panel.background': bg1,
     'panel.dropBorder': '#00000000',
-    'panelTitle.activeBorder': '#00000000', 
+    'panelTitle.activeBorder': accent, // FIX: Shows bottom bar on active Panel tabs (Terminal/Chat)
     'panelTitle.activeForeground': fg0,
     'panelTitle.inactiveForeground': fg2,
     'panelInput.border': '#00000000',
@@ -595,7 +595,7 @@ function buildColors(p) {
     'breadcrumb.foreground': fg1,
     'breadcrumbPicker.background': bg2,
 
-    // ── Symbol Icons ─────────────────────────────────────────────────────
+    // ── Symbol Icons ────────────────────────────────────────────────────
     'symbolIcon.arrayForeground': p.synVar,
     'symbolIcon.booleanForeground': p.synNumber,
     'symbolIcon.classForeground': synType,
@@ -630,7 +630,7 @@ function buildColors(p) {
     'symbolIcon.unitForeground': p.synNumber,
     'symbolIcon.variableForeground': p.synVar,
 
-    // ── Git Decoration ────────────────────────────────────────────────────
+    // ── Git Decoration ───────────────────────────────────────────────────
     'gitDecoration.addedResourceForeground': termGreen,
     'gitDecoration.conflictingResourceForeground': termYellow,
     'gitDecoration.deletedResourceForeground': termRed,
@@ -642,7 +642,7 @@ function buildColors(p) {
     'gitDecoration.submoduleResourceForeground': termBlue,
     'gitDecoration.untrackedResourceForeground': termGreen,
 
-    // ── Source Control ────────────────────────────────────────────────────
+    // ── Source Control ───────────────────────────────────────────────────
     'scm.providerBorder': '#00000000',
 
     // ── Terminal ────────────────────────────────────────────────────────
@@ -656,7 +656,7 @@ function buildColors(p) {
     'terminal.inactiveSelectionBackground': alpha(accent, 0.14),
     'terminal.selectionBackground': alpha(accent, 0.28),
     'terminal.selectionForeground': fg0,
-    'terminal.tab.activeBorder': accent, // FIX: Show bottom border on active terminal tab
+    'terminal.tab.activeBorder': accent, // FIX: Shows bottom bar on active Terminal tabs
     'terminal.ansiBlack': termBlack,
     'terminal.ansiBrightBlack': fg2,
     'terminal.ansiRed': termRed,
@@ -684,7 +684,7 @@ function buildColors(p) {
     'terminalStickyScroll.background': bg1,
     'terminalStickyScrollHover.background': bg2,
 
-    // ── Debug ────────────────────────────────────────────────────────────
+    // ─ Debug ────────────────────────────────────────────────────────────
     'debugToolBar.background': bg2,
     'debugToolBar.border': '#00000000',
     'editor.stackFrameHighlightBackground': alpha(termYellow, 0.14),
@@ -849,7 +849,7 @@ function buildColors(p) {
     'problemsWarningIcon.foreground': termYellow,
     'problemsInfoIcon.foreground': termBlue,
 
-    // ── Welcome Page ─────────────────────────────────────────────────────
+    // ─ Welcome Page ─────────────────────────────────────────────────────
     'welcomePage.background': bg0,
     'welcomePage.buttonBackground': bg2,
     'welcomePage.buttonHoverBackground': alpha(accent, 0.12),
@@ -884,7 +884,7 @@ function buildColors(p) {
     'extensionIcon.preReleaseForeground': accentBright,
     'extensionIcon.sponsorForeground': termMagenta,
 
-    // ── Ports ─────────────────────────────────────────────────────────────
+    // ─ Ports ─────────────────────────────────────────────────────────────
     'ports.iconRunningProcessForeground': termGreen,
 
     // ── Contast ───────────────────────────────────────────────────────────
@@ -1272,7 +1272,7 @@ function buildTokenColors(p) {
   ];
 }
 
-// ─── public API ───────────────────────────────────────────────────────────────
+// ─── public API ──────────────────────────────────────────────────────────────
 
 /**
  * @param {string}  displayName  Theme label shown in VS Code picker
