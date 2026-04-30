@@ -2,13 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.3.0] - 2026-04-10
+## [1.3.0] - 2026-04-29
 
-- Completed theme generator overhaul: Achieved 100% color key (344) and token scope (84) parity with static themes.
-- Added missing scopes including `meta.function-call` and `entity.name.interface`.
-- Fixed `termRed` destructuring and ensured generated themes produce valid JSON that loads successfully in VS Code.
-- Updated package version to 1.3.0 and prepared vsix packaging.
+### New Feature: Single-Hex Custom Theme Generator
 
+You can now generate a fully personalized VS Code theme from a single hex color.
+Provide any hex color as your accent, and the generator derives a complete,
+cohesive palette — covering all 344 color keys and 84 token scopes — in both
+dark and light variants.
+
+### Generator Overhaul
+
+- Rebuilt the theme generator to achieve 100% parity with hand-crafted static
+  themes across all 344 color keys and 84 token scopes.
+- Added previously missing token scopes including `meta.function-call` and
+  `entity.name.interface`.
+- Fixed `termRed` destructuring bug that caused invalid JSON output in generated
+  themes.
+- Generated themes now load successfully in VS Code without errors.
+
+### Packaging
+
+- Updated package version to 1.3.0.
+- Prepared and validated `.vsix` packaging for Marketplace release.
+  
 ## [1.2.7] - 2026-03-22
 
 - Updated color tokens and semantic highlighting across the Forest Ash theme set (dark and light variants) for improved readability and consistency.
