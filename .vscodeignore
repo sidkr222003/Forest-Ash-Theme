@@ -1,6 +1,7 @@
 # Exclude everything in node_modules EXCEPT chroma-js
 node_modules/**
 !node_modules/chroma-js/**
+.vscode-test-web/
 
 # Dev/editor clutter
 .vscode/**

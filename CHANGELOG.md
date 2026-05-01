@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.3.5] - 2025-05-01
+## [1.3.5] - 2026-05-01
 
 ### Web Extension Support
 
@@ -12,7 +12,7 @@ degradation for features that require filesystem access.
 - Added `src/extension-web.js` as a browser-compatible entry point that uses
   only VS Code APIs — no Node.js `fs`, `path`, or `__dirname` dependencies.
 - `Forest Ash: Quick Theme Picker` is fully functional in the web, allowing
-  users to switch between all 20 built-in static themes.
+  users to switch between all 21 built-in static themes.
 - Desktop-only commands (`Generate Custom Theme`, `Apply Custom Theme`,
   `Delete Custom Theme`, `List Saved Custom Themes`) are hidden from the
   Command Palette in web contexts and show a friendly desktop-only message

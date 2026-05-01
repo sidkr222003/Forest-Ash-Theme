@@ -4,34 +4,11 @@ const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
 const { generateThemeJson } = require('./themeGenerator');
+const { STATIC_THEMES } = require('./themesList');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CUSTOM_STATE_KEY = 'forestAsh.customThemes';
-
-const STATIC_THEMES = [
-  { label: 'Forest Ash',                      description: 'vs-dark'  },
-  { label: 'Forest Ash Yoru Paper',            description: 'vs-dark'  },
-  { label: 'Forest Ash Sumi Moon',             description: 'vs-dark'  },
-  { label: 'Forest Ash Kitsune Ink',           description: 'vs-dark'  },
-  { label: 'Forest Ash Shoji Night',           description: 'vs-dark'  },
-  { label: 'Forest Ash Aizome Dusk',           description: 'vs-dark'  },
-  { label: 'Forest Ash Ronin Lantern',         description: 'vs-dark'  },
-  { label: 'Forest Ash Bamboo Midnight',       description: 'vs-dark'  },
-  { label: 'Forest Ash Nebula Manga',          description: 'vs-dark'  },
-  { label: 'Forest Ash Sakura Charcoal',       description: 'vs-dark'  },
-  { label: 'Forest Ash Kage Washi',            description: 'vs-dark'  },
-  { label: 'Forest Ash Yoru Paper Light',      description: 'vs-light' },
-  { label: 'Forest Ash Sumi Moon Light',       description: 'vs-light' },
-  { label: 'Forest Ash Kitsune Ink Light',     description: 'vs-light' },
-  { label: 'Forest Ash Shoji Night Light',     description: 'vs-light' },
-  { label: 'Forest Ash Aizome Dusk Light',     description: 'vs-light' },
-  { label: 'Forest Ash Ronin Lantern Light',   description: 'vs-light' },
-  { label: 'Forest Ash Bamboo Midnight Light', description: 'vs-light' },
-  { label: 'Forest Ash Nebula Manga Light',    description: 'vs-light' },
-  { label: 'Forest Ash Sakura Charcoal Light', description: 'vs-light' },
-  { label: 'Forest Ash Kage Washi Light',      description: 'vs-light' },
-];
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
 
