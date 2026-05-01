@@ -2,7 +2,7 @@
   "name": "forest-ash-theme-vscode",
   "displayName": "Forest Ash Theme",
   "description": "A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes.",
-  "version": "1.3.0",
+  "version": "1.3.5",
   "publisher": "NK2552003",
   "engines": {
     "vscode": "^1.70.0"
@@ -33,14 +33,16 @@
     "url": "https://github.com/sidkr222003/Forest-Ash-Theme/issues"
   },
   "homepage": "https://github.com/sidkr222003/Forest-Ash-Theme",
-  "main": "./extension.js",
+  "main": "./src/extension.js",
+  "browser": "./src/extension-web.js",
   "scripts": {
     "package": "vsce package",
     "publish": "vsce publish",
     "prepublishOnly": "echo \"Skipping prepublish hook to avoid recursive npm run package\""
   },
   "devDependencies": {
-    "@vscode/vsce": "^2.0.0"
+    "@vscode/test-web": "^0.0.80",
+    "@vscode/vsce": "^3.9.0"
   },
   "dependencies": {
     "chroma-js": "^2.6.0"
@@ -86,21 +88,25 @@
         {
           "command": "forestAsh.generateTheme",
           "group": "forestAsh@1",
-          "when": "editorFocus"
+          "when": "editorFocus && !isWeb"
         }
       ],
       "commandPalette": [
         {
-          "command": "forestAsh.generateTheme"
+          "command": "forestAsh.generateTheme",
+          "when": "!isWeb"
         },
         {
-          "command": "forestAsh.applyCustomTheme"
+          "command": "forestAsh.applyCustomTheme",
+          "when": "!isWeb"
         },
         {
-          "command": "forestAsh.deleteCustomTheme"
+          "command": "forestAsh.deleteCustomTheme",
+          "when": "!isWeb"
         },
         {
-          "command": "forestAsh.listCustomThemes"
+          "command": "forestAsh.listCustomThemes",
+          "when": "!isWeb"
         },
         {
           "command": "forestAsh.quickThemePicker"

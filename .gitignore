@@ -3,16 +3,18 @@ node_modules/
 
 # VS Code settings
 .vscode/
+.vscode-test-web
 
 # npm logs
 npm-debug.log*
 package-lock.json
 
 # Built assets
-# *.vsix
+*.vsix
 
 # macOS
 .DS_Store
 
 # dotenv
 .env
+

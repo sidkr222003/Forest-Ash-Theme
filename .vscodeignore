@@ -1,6 +1,7 @@
 # Exclude everything in node_modules EXCEPT chroma-js
 node_modules/**
 !node_modules/chroma-js/**
+.vscode-test-web/
 
 # Dev/editor clutter
 .vscode/**
@@ -28,4 +29,4 @@ themes/custom/**
 resources/file.svg
 resources/dark.png
 resources/light.png
-resources/Preview.png
+resources/demo.gif
