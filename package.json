@@ -2,7 +2,7 @@
   "name": "forest-ash-theme-vscode",
   "displayName": "Forest Ash Theme",
   "description": "A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes.",
-  "version": "1.3.0",
+  "version": "1.3.5",
   "publisher": "NK2552003",
   "engines": {
     "vscode": "^1.70.0"
@@ -41,7 +41,8 @@
     "prepublishOnly": "echo \"Skipping prepublish hook to avoid recursive npm run package\""
   },
   "devDependencies": {
-    "@vscode/vsce": "^2.0.0"
+    "@vscode/test-web": "^0.0.80",
+    "@vscode/vsce": "^3.9.0"
   },
   "dependencies": {
     "chroma-js": "^2.6.0"

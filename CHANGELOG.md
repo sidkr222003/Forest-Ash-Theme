@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.5] - 2025-05-01
+
+### Web Extension Support
+
+The extension now works in VS Code for the Web (vscode.dev) with graceful
+degradation for features that require filesystem access.
+
+- Added `src/extension-web.js` as a browser-compatible entry point that uses
+  only VS Code APIs — no Node.js `fs`, `path`, or `__dirname` dependencies.
+- `Forest Ash: Quick Theme Picker` is fully functional in the web, allowing
+  users to switch between all 20 built-in static themes.
+- Desktop-only commands (`Generate Custom Theme`, `Apply Custom Theme`,
+  `Delete Custom Theme`, `List Saved Custom Themes`) are hidden from the
+  Command Palette in web contexts and show a friendly desktop-only message
+  if triggered.
+- Added `"browser"` field to `package.json` pointing to the web entry point.
+- Added `"when": "!isWeb"` context clauses to menus so unavailable commands
+  are not shown in `vscode.dev`.
+
 ## [1.3.0] - 2026-04-29
 
 ### New Feature: Single-Hex Custom Theme Generator
@@ -44,4 +63,3 @@ dark and light variants.
 - Added refreshed palette adjustments for Sakura Charcoal and Yoru Paper themes.
 - Fixed custom theme generation edge cases for low-saturation accent colors.
 - Resolved theme activation issues on VS Code stable releases near 1.74.
-
