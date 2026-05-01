@@ -33,7 +33,8 @@
     "url": "https://github.com/sidkr222003/Forest-Ash-Theme/issues"
   },
   "homepage": "https://github.com/sidkr222003/Forest-Ash-Theme",
-  "main": "./extension.js",
+  "main": "./src/extension.js",
+  "browser": "./src/extension-web.js",
   "scripts": {
     "package": "vsce package",
     "publish": "vsce publish",
@@ -86,21 +87,25 @@
         {
           "command": "forestAsh.generateTheme",
           "group": "forestAsh@1",
-          "when": "editorFocus"
+          "when": "editorFocus && !isWeb"
         }
       ],
       "commandPalette": [
         {
-          "command": "forestAsh.generateTheme"
+          "command": "forestAsh.generateTheme",
+          "when": "!isWeb"
         },
         {
-          "command": "forestAsh.applyCustomTheme"
+          "command": "forestAsh.applyCustomTheme",
+          "when": "!isWeb"
         },
         {
-          "command": "forestAsh.deleteCustomTheme"
+          "command": "forestAsh.deleteCustomTheme",
+          "when": "!isWeb"
         },
         {
-          "command": "forestAsh.listCustomThemes"
+          "command": "forestAsh.listCustomThemes",
+          "when": "!isWeb"
         },
         {
           "command": "forestAsh.quickThemePicker"

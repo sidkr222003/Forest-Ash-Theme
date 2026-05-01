@@ -3,7 +3,7 @@
 const vscode = require('vscode');
 const path   = require('path');
 const fs     = require('fs');
-const { generateThemeJson } = require('./src/themeGenerator');
+const { generateThemeJson } = require('./themeGenerator');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
