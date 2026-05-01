@@ -2,7 +2,7 @@
 
 A curated set of dark and light, eye-friendly themes for Visual Studio Code, inspired by forest ash textures and anime mood boards. Each palette is designed for readability across long coding sessions.
 
-![Forest Ash Theme preview](https://raw.githubusercontent.com/sidkr222003/Forest-Ash-Theme/main/resources/Preview.png)
+![Forest Ash Theme preview](https://raw.githubusercontent.com/sidkr222003/Forest-Ash-Theme/main/resources/demo.gif)
 
 ## Theme Collection
 
