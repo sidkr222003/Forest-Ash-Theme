@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.6] - 2026-05-04
+
+This. uppdate only contains some bug fixes and doucmentation updates
+
 ## [1.3.5] - 2026-05-01
 
 ### Web Extension Support
