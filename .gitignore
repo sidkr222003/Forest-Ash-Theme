@@ -1,20 +1,12 @@
-# Node modules
+```
+# Dependencies
 node_modules/
 
-# VS Code settings
+# Editors
 .vscode/
-.vscode-test-web
 
-# npm logs
-npm-debug.log*
-package-lock.json
-
-# Built assets
-*.vsix
-
-# macOS
-.DS_Store
-
-# dotenv
+# Environment
 .env
-
+.env.local
+*.env.*
+```

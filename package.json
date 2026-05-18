@@ -154,8 +154,7 @@
         {
           "id": "forestAshViews",
           "title": "Forest Ash",
-          "icon": "resources/icon.png",
-          "when": "!isWeb"
+          "icon": "resources/icon.svg"
         }
       ]
     },
@@ -163,13 +162,11 @@
       "forestAshViews": [
         {
           "id": "forestAsh.paletteView",
-          "name": "Active Palette",
-          "when": "!isWeb"
+          "name": "Active Palette"
         },
         {
           "id": "forestAsh.customThemesView",
-          "name": "Custom Themes",
-          "when": "!isWeb"
+          "name": "Custom Themes"
         }
       ]
     },

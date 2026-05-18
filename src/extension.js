@@ -274,9 +274,11 @@ class PaletteViewProvider {
   constructor(context) {
     this.context = context;
     this.view = null;
+    this._onDidChangeWebviewView = new vscode.EventEmitter();
+    this.onDidChangeWebviewView = this._onDidChangeWebviewView.event;
   }
 
-  async resolveWebviewView(view) {
+  async resolveWebviewView(view, resolveContext, token) {
     this.view = view;
     view.webview.options = { enableScripts: true };
 
@@ -287,21 +289,29 @@ class PaletteViewProvider {
       }
     });
 
+    // Always refresh when the webview is resolved
     await this.refresh();
   }
 
   async refresh() {
-    if (!this.view) return;
+    if (!this.view || !this.view.webview) return;
     const themeLabel = getActiveThemeLabel();
-    const theme = await readThemeJsonByLabel(this.context, themeLabel);
-    if (!theme?.colors) {
-      this.view.webview.html = buildPaletteInspectorHtml(themeLabel, null, {
-        emptyMessage: 'Active theme is not a Forest Ash theme.',
-      });
-      return;
-    }
+    try {
+      const theme = await readThemeJsonByLabel(this.context, themeLabel);
+      if (!theme?.colors) {
+        this.view.webview.html = buildPaletteInspectorHtml(themeLabel, null, {
+          emptyMessage: 'Active theme is not a Forest Ash theme.',
+        });
+        return;
+      }
 
-    this.view.webview.html = buildPaletteInspectorHtml(themeLabel, theme.colors);
+      this.view.webview.html = buildPaletteInspectorHtml(themeLabel, theme.colors);
+    } catch (error) {
+      console.error('[ForestAsh] PaletteViewProvider.refresh failed:', error.message);
+      this.view.webview.html = buildPaletteInspectorHtml(themeLabel, null, {
+        emptyMessage: `Error loading palette: ${error.message}`,
+      });
+    }
   }
 
   async reveal() {
@@ -1339,7 +1349,12 @@ function activate(context) {
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(() => scheduleFocusUpdate(context)),
     vscode.window.onDidChangeTextEditorSelection(() => scheduleFocusUpdate(context)),
-    vscode.workspace.onDidChangeTextDocument(() => scheduleFocusUpdate(context))
+    vscode.workspace.onDidChangeTextDocument(() => scheduleFocusUpdate(context)),
+    vscode.window.onDidChangeActiveColorTheme(() => {
+      if (paletteViewProvider) {
+        paletteViewProvider.refresh();
+      }
+    })
   );
 
   context.subscriptions.push(
