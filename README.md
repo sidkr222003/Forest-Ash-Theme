@@ -1,5 +1,9 @@
 # Forest Ash Theme (VS Code)
 
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-%23EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/sidkr222003)
+[![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-%23FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/nk2552003)
+[![vscode.dev](https://img.shields.io/badge/vscode.dev-Compatible-007ACC?logo=visualstudiocode&logoColor=white)](https://vscode.dev)
+
 A curated set of dark and light, eye-friendly themes for Visual Studio Code, inspired by forest ash textures and anime mood boards. Each palette is designed for readability across long coding sessions.
 
 ![Forest Ash Theme preview](https://raw.githubusercontent.com/sidkr222003/Forest-Ash-Theme/main/resources/demo.gif)
@@ -84,6 +88,84 @@ Contrast and readability are preserved automatically for both dark and light var
 | `Forest Ash: List Saved Custom Themes` | View all custom themes in a webview panel with color swatches |
 | `Forest Ash: Quick Theme Picker` | Browse and apply all Forest Ash themes (built-in + custom) in one picker |
 
+---
+
+## High Impact Features (1.4.0)
+
+### Focus Mode / Zen Palette
+
+Toggle a deep-focus mode that dims everything except the active function or block. It also softens CodeLens and inactive selection contrast for a calmer view.
+
+- Command: `Forest Ash: Toggle Focus Mode`
+- Settings: `forestAsh.focusMode.enabled`, `forestAsh.focusMode.dimOpacity`
+
+### Circadian Auto-Switching
+
+Automatically switch between a light day theme and warm night theme based on your time zone.
+
+- Command: `Forest Ash: Apply Circadian Theme Now`
+- Settings: `forestAsh.circadian.*`
+
+### Language-Specific Accent Overrides
+
+Pin a unique accent color per language via settings.
+
+```json
+"forestAsh.languageAccents": {
+	"python": "#B48EAD",
+	"go": "#8FBCBB",
+	"rust": "#D08770"
+}
+```
+
+### Italic / No-Italic Toggle
+
+Instantly toggle italics for token styles (useful with italic-friendly fonts).
+
+- Command: `Forest Ash: Toggle Italic Mode`
+- Setting: `forestAsh.italicMode.enabled`
+
+### High Contrast Boost
+
+Boosts contrast across all Forest Ash foregrounds and tokens to improve accessibility.
+
+- Command: `Forest Ash: High Contrast Boost`
+- Setting: `forestAsh.highContrast.enabled`
+
+### Export Palette as CSS Variables
+
+Export the active Forest Ash theme as a CSS file with `:root` variables.
+
+- Command: `Forest Ash: Export Palette as CSS`
+
+### Theme Preview Webview
+
+Preview all 21 Forest Ash themes side-by-side without switching.
+
+- Command: `Forest Ash: Preview Themes`
+
+### Palette Inspector
+
+Open a searchable grid of all color tokens in the active theme with copy-on-click.
+
+- Command: `Forest Ash: Show Active Palette`
+
+### Custom Theme Sharing (Import / Export)
+
+Export a custom theme JSON for sharing, or import one from the community.
+
+- Commands: `Forest Ash: Export Custom Theme`, `Forest Ash: Import Custom Theme`
+- Community sharing: add JSON files to the share folder and open a PR.
+
+### Theme of the Week
+
+Once per week, Forest Ash surfaces a hand-picked theme with a short mood description.
+
+- Command: `Forest Ash: Theme of the Week`
+- Setting: `forestAsh.themeOfWeek.enabled`
+
+> **Note:** Advanced commands (Focus Mode, preview, export, import) run in the desktop app. The web version focuses on theme browsing and switching.
+
 ### Custom Theme Persistence
 
 Generated themes are saved inside the extension's `themes/custom/` folder and registered in `package.json` automatically. They survive VS Code restarts and are restored silently on every activation. If a theme file goes missing (e.g. after reinstall), the extension cleans up stale metadata automatically.
@@ -127,7 +209,7 @@ Generated themes are saved inside the extension's `themes/custom/` folder and re
 | `name` | `forest-ash-theme` |
 | `displayName` | `Forest Ash Theme` |
 | `publisher` | `NK2552003` |
-| `version` | `1.3.0` |
+| `version` | `1.4.0` |
 | `engines.vscode` | `^1.70.0` |
 
 ---
@@ -149,11 +231,19 @@ forest-ash-theme/
 ├── extension.js              # extension entry point, all commands
 ├── package.json              # manifest, contributes.themes, commands
 ├── src/
-│   └── themeGenerator.js     # dynamic palette + theme JSON builder
+│   ├── extension.js          # desktop entry point, commands
+│   ├── extension-web.js      # web entry point
+│   ├── themeGenerator.js     # dynamic palette + theme JSON builder
+│   ├── themeReading.js       # shared theme JSON loader
+│   └── themeWebviews.js      # preview/palette webview helpers
 ├── themes/
 │   ├── *.json                # 21 hand-crafted static themes
 │   └── custom/               # runtime-generated user themes (git-ignored)
 │       └── .gitkeep
+├── docs/
+│   └── 1.4.0-features.md      # feature walkthrough for 1.4.0
+├── share/
+│   └── README.md              # community theme submissions
 ├── resources/
 │   ├── icon.png
 │   ├── Preview.png

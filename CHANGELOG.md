@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-05-18
+
+### High Impact Features
+
+- Added Focus Mode with Zen palette overrides and active-block dimming.
+- Added Circadian auto-switching between day/night themes with timezone support.
+- Added per-language accent overrides through `forestAsh.languageAccents`.
+- Added Italic Mode toggle and High Contrast Boost commands.
+- Added Theme Preview and Palette Inspector webviews.
+- Added custom theme import/export plus CSS palette export.
+- Added Theme of the Week welcome panel with weekly cadence.
+- Added vscode.dev compatibility metadata and sponsor badges.
+
 ## [1.3.6] - 2026-05-04
 
 This. uppdate only contains some bug fixes and doucmentation updates

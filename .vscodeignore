@@ -9,6 +9,7 @@ node_modules/**
 **/.DS_Store
 **/.git/**
 **/.gitignore
+docs/
 
 # Dev dependencies not needed at runtime
 .vscodeignore
@@ -29,4 +30,5 @@ themes/custom/**
 resources/file.svg
 resources/dark.png
 resources/light.png
-resources/demo.gif
+resources/demo.
+resources/demo_generator/**
