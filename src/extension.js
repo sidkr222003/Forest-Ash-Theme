@@ -35,11 +35,6 @@ let customThemesProvider = null;
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
 
-/**
- * The extension's own root directory (where package.json lives).
- * __dirname is <ext-root>/src or <ext-root> depending on entry point;
- * we resolve upward until we find package.json.
- */
 function extRoot() {
   let dir = __dirname;
   while (dir !== path.dirname(dir)) {
@@ -49,36 +44,24 @@ function extRoot() {
   throw new Error('Cannot locate extension root (package.json not found)');
 }
 
-/** Folder inside the extension where generated theme JSON files are written. */
 function customThemesDir() {
   return path.join(extRoot(), 'themes', 'custom');
 }
 
-/** Folder used for community share exports inside the extension root. */
 function shareThemesDir() {
   return path.join(extRoot(), 'share');
 }
 
-/** Absolute path for a generated theme file. */
 function themeFilePath(fileName) {
   return path.join(customThemesDir(), fileName);
 }
 
-/** Relative path used in package.json (must be relative to ext root). */
 function themeFileRelPath(fileName) {
   return `./themes/custom/${fileName}`;
 }
 
 // ─── package.json patching ────────────────────────────────────────────────────
 
-/**
- * Read the extension's package.json, add (or replace) an entry for this theme
- * under contributes.themes, then write it back.
- *
- * VS Code reads package.json once per activation; to make the new entry visible
- * in the native picker the extension host must be reloaded.  We prompt for that
- * after generation.
- */
 function patchPackageJson(meta) {
   const pkgPath = path.join(extRoot(), 'package.json');
   const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
@@ -86,7 +69,6 @@ function patchPackageJson(meta) {
   if (!pkg.contributes)        pkg.contributes = {};
   if (!pkg.contributes.themes) pkg.contributes.themes = [];
 
-  // Remove any existing entry with the same label so we don't accumulate dupes
   pkg.contributes.themes = pkg.contributes.themes.filter(
     t => t.label !== meta.label
   );
@@ -100,9 +82,6 @@ function patchPackageJson(meta) {
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
 }
 
-/**
- * Remove a theme entry from package.json (called on delete).
- */
 function unpatchPackageJson(label) {
   const pkgPath = path.join(extRoot(), 'package.json');
   const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
@@ -150,10 +129,40 @@ function deleteCustomMeta(context, label) {
 // ─── Restore on activation ────────────────────────────────────────────────────
 
 /**
- * On every activation, make sure every saved custom theme is represented in
- * package.json (the file could have been reverted by git, or the user could
- * have reinstalled the extension).  This is a silent, idempotent sync.
+ * Ensure the `forestAsh.paletteView` view contribution has `"type": "webview"`.
+ *
+ * VS Code will NEVER call resolveWebviewView — and will show
+ * "There is no data provider registered that can provide view data" — unless
+ * the view is explicitly declared with `"type": "webview"` in package.json.
+ * This patches that field at runtime, the same way patchPackageJson() already
+ * handles custom theme entries.
+ *
+ * Returns true when the file was modified (a reload is needed for VS Code to
+ * pick up the change).
  */
+function ensurePaletteViewWebviewType() {
+  const pkgPath = path.join(extRoot(), 'package.json');
+  const pkg     = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+
+  let dirty = false;
+  const viewGroups = pkg.contributes?.views || {};
+
+  for (const groupViews of Object.values(viewGroups)) {
+    if (!Array.isArray(groupViews)) continue;
+    for (const view of groupViews) {
+      if (view.id === 'forestAsh.paletteView' && view.type !== 'webview') {
+        view.type = 'webview';
+        dirty = true;
+      }
+    }
+  }
+
+  if (dirty) {
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+  }
+  return dirty;
+}
+
 function syncPackageJsonOnActivation(context) {
   const pkgPath = path.join(extRoot(), 'package.json');
   const pkg     = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
@@ -164,13 +173,11 @@ function syncPackageJsonOnActivation(context) {
   let dirty = false;
 
   for (const meta of customs) {
-    // Only add if the file actually exists AND the entry is missing
     const filePath    = themeFilePath(meta.fileName);
     const alreadyIn   = pkg.contributes.themes.some(t => t.label === meta.label);
     const fileExists  = fs.existsSync(filePath);
 
     if (!fileExists) {
-      // Theme file is gone — remove stale metadata silently
       const idx = customs.findIndex(t => t.label === meta.label);
       if (idx > -1) customs.splice(idx, 1);
       context.globalState.update(CUSTOM_STATE_KEY, customs);
@@ -230,6 +237,60 @@ function resolveCustomThemeMeta(customs, input) {
   return null;
 }
 
+// ─── Universal theme JSON reader ──────────────────────────────────────────────
+//
+// Reads the theme JSON for *any* installed VS Code theme (not just Forest Ash)
+// by searching the contributes.themes entries across all loaded extensions.
+// Falls back to Forest Ash's own reader first so custom/generated themes
+// still work correctly.
+
+async function readAnyThemeJsonByLabel(context, themeLabel) {
+  if (!themeLabel) return null;
+
+  // 1. Try the Forest Ash internal reader first (handles custom + built-in FA themes)
+  try {
+    const faTheme = await readThemeJsonByLabel(context, themeLabel);
+    if (faTheme?.colors && Object.keys(faTheme.colors).length > 0) {
+      return faTheme;
+    }
+  } catch (_) {}
+
+  // 2. Search every installed extension for a matching theme contribution
+  for (const ext of vscode.extensions.all) {
+    const contributed = ext.packageJSON?.contributes?.themes;
+    if (!Array.isArray(contributed)) continue;
+
+    for (const t of contributed) {
+      if (t.label !== themeLabel || !t.path) continue;
+
+      const themePath = path.isAbsolute(t.path)
+        ? t.path
+        : path.join(ext.extensionPath, t.path);
+
+      try {
+        if (!fs.existsSync(themePath)) continue;
+        const parsed = JSON.parse(fs.readFileSync(themePath, 'utf8'));
+        // Resolve "include" chains (common in VS Code built-in themes)
+        if (parsed?.include) {
+          const includePath = path.resolve(path.dirname(themePath), parsed.include);
+          try {
+            const base = JSON.parse(fs.readFileSync(includePath, 'utf8'));
+            parsed.colors      = { ...base.colors,      ...parsed.colors };
+            parsed.tokenColors = [...(base.tokenColors || []), ...(parsed.tokenColors || [])];
+          } catch (_) {}
+        }
+        if (parsed?.colors && Object.keys(parsed.colors).length > 0) {
+          return parsed;
+        }
+      } catch (_) {}
+    }
+  }
+
+  return null;
+}
+
+// ─── Tree view items ─────────────────────────────────────────────────────────
+
 class CustomThemeItem extends vscode.TreeItem {
   constructor(meta) {
     super(meta.label, vscode.TreeItemCollapsibleState.None);
@@ -270,17 +331,359 @@ class CustomThemesProvider {
   }
 }
 
+// ─── Palette sidebar — self-contained HTML builder ────────────────────────────
+//
+// Builds the color-tile grid directly in JS so the sidebar view never depends
+// on buildPaletteInspectorHtml from themeWebviews.js.  Every key-value pair
+// from the theme's `colors` map becomes a clickable swatch tile.
+
+const PALETTE_GROUPS = [
+  { prefix: 'editor.background',       label: 'Editor BG'      },
+  { prefix: 'editor.foreground',       label: 'Editor FG'      },
+  { prefix: 'editor',                  label: 'Editor'         },
+  { prefix: 'editorCursor',            label: 'Cursor'         },
+  { prefix: 'editorLineNumber',        label: 'Line Numbers'   },
+  { prefix: 'editorGutter',            label: 'Gutter'         },
+  { prefix: 'editorGroup',             label: 'Editor Groups'  },
+  { prefix: 'editorWidget',            label: 'Widgets'        },
+  { prefix: 'editorSuggestWidget',     label: 'Suggest'        },
+  { prefix: 'editorHoverWidget',       label: 'Hover'          },
+  { prefix: 'editorError',             label: 'Errors'         },
+  { prefix: 'editorWarning',           label: 'Warnings'       },
+  { prefix: 'editorInfo',              label: 'Info'           },
+  { prefix: 'editorIndentGuide',       label: 'Indent Guides'  },
+  { prefix: 'editorBracketMatch',      label: 'Bracket Match'  },
+  { prefix: 'editorOverviewRuler',     label: 'Overview Ruler' },
+  { prefix: 'tab',                     label: 'Tabs'           },
+  { prefix: 'titleBar',                label: 'Title Bar'      },
+  { prefix: 'statusBar',               label: 'Status Bar'     },
+  { prefix: 'activityBar',             label: 'Activity Bar'   },
+  { prefix: 'sideBar',                 label: 'Side Bar'       },
+  { prefix: 'panel',                   label: 'Panel'          },
+  { prefix: 'terminal',                label: 'Terminal'       },
+  { prefix: 'button',                  label: 'Buttons'        },
+  { prefix: 'input',                   label: 'Inputs'         },
+  { prefix: 'list',                    label: 'Lists'          },
+  { prefix: 'dropdown',                label: 'Dropdowns'      },
+  { prefix: 'focusBorder',             label: 'Focus'          },
+  { prefix: 'selection',               label: 'Selection'      },
+  { prefix: 'textLink',                label: 'Links'          },
+  { prefix: 'badge',                   label: 'Badges'         },
+  { prefix: 'progressBar',             label: 'Progress'       },
+  { prefix: 'scrollbar',               label: 'Scrollbar'      },
+  { prefix: 'scrollbarSlider',         label: 'Scrollbar Slider'},
+  { prefix: 'minimap',                 label: 'Minimap'        },
+  { prefix: 'gitDecoration',           label: 'Git'            },
+  { prefix: 'notifications',           label: 'Notifications'  },
+  { prefix: 'notificationCenter',      label: 'Notification Center' },
+  { prefix: 'pickerGroup',             label: 'Picker'         },
+  { prefix: 'quickInput',              label: 'Quick Input'    },
+  { prefix: 'menu',                    label: 'Menus'          },
+  { prefix: 'breadcrumb',              label: 'Breadcrumbs'    },
+  { prefix: 'settings',                label: 'Settings'       },
+  { prefix: 'debugToolBar',            label: 'Debug Toolbar'  },
+  { prefix: 'debugConsole',            label: 'Debug Console'  },
+  { prefix: 'peekView',                label: 'Peek View'      },
+  { prefix: 'merge',                   label: 'Merge'          },
+  { prefix: 'charts',                  label: 'Charts'         },
+  { prefix: 'toolbar',                 label: 'Toolbar'        },
+];
+
+/**
+ * Group a flat { key: hex } colors map into labeled buckets.
+ * Each color ends up in exactly one bucket (longest matching prefix wins).
+ * Anything unmatched goes into "Other".
+ */
+function groupColors(colors) {
+  // Sort prefixes longest-first so specific keys beat general ones
+  const sortedGroups = PALETTE_GROUPS.slice().sort(
+    (a, b) => b.prefix.length - a.prefix.length
+  );
+
+  const buckets = new Map(); // label → [{key, value}]
+  const used    = new Set();
+
+  for (const { prefix, label } of sortedGroups) {
+    const entries = Object.entries(colors).filter(
+      ([k, v]) => !used.has(k) && k.startsWith(prefix) && v && typeof v === 'string'
+    );
+    if (!entries.length) continue;
+    entries.forEach(([k]) => used.add(k));
+    buckets.set(label, entries.map(([key, value]) => ({ key, value })));
+  }
+
+  // Anything left
+  const other = Object.entries(colors).filter(([k, v]) => !used.has(k) && v && typeof v === 'string');
+  if (other.length) {
+    buckets.set('Other', other.map(([key, value]) => ({ key, value })));
+  }
+
+  return buckets;
+}
+
+/**
+ * Returns true when the hex color (ignoring alpha) is "light enough"
+ * that dark text should be used on top.
+ */
+function isLightColor(hex) {
+  try {
+    // Strip alpha channel characters (#RRGGBBAA → #RRGGBB)
+    const clean = hex.slice(0, 7);
+    const r = parseInt(clean.slice(1, 3), 16);
+    const g = parseInt(clean.slice(3, 5), 16);
+    const b = parseInt(clean.slice(5, 7), 16);
+    // Perceived luminance
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 165;
+  } catch (_) {
+    return false;
+  }
+}
+
+function buildSidebarPaletteHtml(themeLabel, colors) {
+  const esc = s => String(s).replace(/[&<>"']/g, m =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]
+  );
+
+  // ── Empty / loading states ──────────────────────────────────────────────
+  if (!colors || Object.keys(colors).length === 0) {
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<style>
+  body{margin:0;padding:20px 16px;font-family:var(--vscode-font-family);
+       color:var(--vscode-foreground);background:transparent;font-size:12px;}
+  .msg{opacity:.7;font-style:italic;}
+</style></head><body>
+<p class="msg">No color palette available for "<strong>${esc(themeLabel)}</strong>".<br>
+Switch to a theme and the palette will refresh automatically.</p>
+</body></html>`;
+  }
+
+  const buckets = groupColors(colors);
+  const totalColors = Object.keys(colors).length;
+
+  // ── Build tile sections ──────────────────────────────────────────────────
+  let sections = '';
+  for (const [groupLabel, entries] of buckets) {
+    const tiles = entries.map(({ key, value }) => {
+      // Normalise: strip alpha for the swatch bg, keep full value for label
+      const swatchColor = value.length > 7 ? value.slice(0, 7) : value;
+      const textColor   = isLightColor(swatchColor) ? '#1a1a1a' : '#f0f0f0';
+      const shortName   = key.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\./g, ' › ');
+      return `<div class="tile" title="${esc(key)}\n${esc(value)}"
+                   data-value="${esc(value)}"
+                   style="background:${esc(swatchColor)};color:${textColor};"
+                   onclick="copy('${esc(value)}')">
+        <span class="tile-hex">${esc(value.toUpperCase())}</span>
+        <span class="tile-name">${esc(shortName)}</span>
+      </div>`;
+    }).join('');
+
+    sections += `
+      <section>
+        <h3 class="group-label">${esc(groupLabel)} <span class="count">${entries.length}</span></h3>
+        <div class="grid">${tiles}</div>
+      </section>`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:var(--vscode-font-family,system-ui,sans-serif);
+    font-size:11px;
+    color:var(--vscode-foreground);
+    background:transparent;
+    padding:0 0 24px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ── header ── */
+  .header{
+    position:sticky;top:0;z-index:10;
+    background:var(--vscode-sideBar-background,#252526);
+    border-bottom:1px solid var(--vscode-panel-border,#3c3c3c);
+    padding:10px 12px 8px;
+  }
+  .header h2{
+    font-size:12px;font-weight:600;
+    color:var(--vscode-foreground);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .header .meta{
+    font-size:10px;opacity:.55;margin-top:2px;
+  }
+
+  /* ── search ── */
+  .search-wrap{padding:8px 10px 4px;}
+  .search-wrap input{
+    width:100%;
+    padding:5px 8px;
+    font-size:11px;
+    background:var(--vscode-input-background,#3c3c3c);
+    color:var(--vscode-input-foreground,#ccc);
+    border:1px solid var(--vscode-input-border,#555);
+    border-radius:3px;
+    outline:none;
+  }
+  .search-wrap input:focus{
+    border-color:var(--vscode-focusBorder,#007acc);
+  }
+
+  /* ── sections ── */
+  section{padding:6px 10px 2px;}
+  .group-label{
+    font-size:10px;font-weight:600;letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--vscode-descriptionForeground,#888);
+    margin:8px 0 5px;
+    display:flex;align-items:center;gap:5px;
+  }
+  .count{
+    font-weight:400;font-size:9px;
+    opacity:.6;letter-spacing:0;text-transform:none;
+  }
+
+  /* ── tile grid ── */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(72px,1fr));
+    gap:5px;
+    margin-bottom:4px;
+  }
+  .tile{
+    border-radius:5px;
+    padding:7px 5px 5px;
+    cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;
+    min-height:52px;
+    border:1px solid rgba(255,255,255,.08);
+    transition:transform .1s,box-shadow .1s;
+    overflow:hidden;
+    position:relative;
+  }
+  .tile:hover{
+    transform:scale(1.06);
+    box-shadow:0 3px 10px rgba(0,0,0,.45);
+    z-index:1;
+  }
+  .tile:active{transform:scale(.97);}
+  .tile-hex{
+    font-size:9px;font-weight:700;
+    letter-spacing:.03em;
+    margin-bottom:3px;
+    text-shadow:0 1px 2px rgba(0,0,0,.4);
+  }
+  .tile-name{
+    font-size:8.5px;
+    text-align:center;
+    line-height:1.3;
+    opacity:.85;
+    word-break:break-all;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+
+  /* ── toast ── */
+  #toast{
+    position:fixed;bottom:14px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--vscode-badge-background,#4d4d4d);
+    color:var(--vscode-badge-foreground,#fff);
+    padding:4px 12px;border-radius:20px;
+    font-size:10px;pointer-events:none;
+    opacity:0;transition:opacity .2s,transform .2s;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ── hidden by filter ── */
+  .tile.hidden{display:none;}
+  section.empty{display:none;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>${esc(themeLabel)}</h2>
+  <div class="meta">${totalColors} colors</div>
+</div>
+
+<div class="search-wrap">
+  <input id="search" type="text" placeholder="Filter by name or hex…" oninput="filterTiles(this.value)">
+</div>
+
+${sections}
+
+<div id="toast">Copied!</div>
+
+<script>
+  const vscode = acquireVsCodeApi();
+
+  function copy(value) {
+    vscode.postMessage({ type: 'copy', value });
+    showToast(value);
+  }
+
+  let toastTimer;
+  function showToast(text) {
+    const t = document.getElementById('toast');
+    t.textContent = 'Copied ' + text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+  }
+
+  function filterTiles(query) {
+    const q = query.trim().toLowerCase();
+    document.querySelectorAll('.tile').forEach(tile => {
+      const match = !q
+        || tile.title.toLowerCase().includes(q)
+        || (tile.dataset.value || '').toLowerCase().includes(q);
+      tile.classList.toggle('hidden', !match);
+    });
+    // Hide sections where all tiles are hidden
+    document.querySelectorAll('section').forEach(sec => {
+      const anyVisible = [...sec.querySelectorAll('.tile')].some(t => !t.classList.contains('hidden'));
+      sec.classList.toggle('empty', !anyVisible);
+    });
+  }
+</script>
+</body>
+</html>`;
+}
+
+// ─── Palette sidebar view provider ───────────────────────────────────────────
+
 class PaletteViewProvider {
   constructor(context) {
     this.context = context;
-    this.view = null;
-    this._onDidChangeWebviewView = new vscode.EventEmitter();
-    this.onDidChangeWebviewView = this._onDidChangeWebviewView.event;
+    this.view    = null;
   }
 
-  async resolveWebviewView(view, resolveContext, token) {
+  /**
+   * VS Code calls this once when the user first expands the view.
+   * It MUST set webview.html synchronously (or very quickly) — if we leave
+   * it blank VS Code may display the "no data provider" placeholder instead.
+   */
+  resolveWebviewView(view) {
     this.view = view;
-    view.webview.options = { enableScripts: true };
+
+    view.webview.options = {
+      enableScripts: true,
+      // retainContextWhenHidden keeps the webview alive when the panel is
+      // collapsed / another sidebar view is shown, so tiles don't reset.
+      retainContextWhenHidden: true,
+    };
+
+    // Set HTML immediately (loading state) — this clears the VS Code placeholder
+    view.webview.html = buildSidebarPaletteHtml(
+      getActiveThemeLabel() || 'Active Theme', null
+    );
 
     view.webview.onDidReceiveMessage(async message => {
       if (message.type === 'copy' && message.value) {
@@ -289,36 +692,38 @@ class PaletteViewProvider {
       }
     });
 
-    // Always refresh when the webview is resolved
-    await this.refresh();
+    // Populate tiles asynchronously without blocking resolveWebviewView
+    this._load();
   }
 
-  async refresh() {
-    if (!this.view || !this.view.webview) return;
-    const themeLabel = getActiveThemeLabel();
-    try {
-      const theme = await readThemeJsonByLabel(this.context, themeLabel);
-      if (!theme?.colors) {
-        this.view.webview.html = buildPaletteInspectorHtml(themeLabel, null, {
-          emptyMessage: 'Active theme is not a Forest Ash theme.',
-        });
-        return;
+  /** Internal: fetch theme colors and render tiles. */
+  async _load() {
+    const themeLabel = getActiveThemeLabel() || 'Active Theme';
+    let theme = null;
+
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        theme = await readAnyThemeJsonByLabel(this.context, themeLabel);
+      } catch (err) {
+        console.error('[ForestAsh] palette _load error:', err?.message || err);
       }
-
-      this.view.webview.html = buildPaletteInspectorHtml(themeLabel, theme.colors);
-    } catch (error) {
-      console.error('[ForestAsh] PaletteViewProvider.refresh failed:', error.message);
-      this.view.webview.html = buildPaletteInspectorHtml(themeLabel, null, {
-        emptyMessage: `Error loading palette: ${error.message}`,
-      });
+      if (theme?.colors && Object.keys(theme.colors).length > 0) break;
+      // Short delay then retry (extensions may still be activating)
+      await new Promise(r => setTimeout(r, 300));
     }
+
+    if (!this.view?.webview) return; // view was disposed while we were waiting
+
+    this.view.webview.html = buildSidebarPaletteHtml(
+      themeLabel,
+      theme?.colors || null
+    );
   }
 
-  async reveal() {
-    await vscode.commands.executeCommand('workbench.view.extension.forestAshViews');
-    if (typeof this.view?.show === 'function') {
-      this.view.show(true);
-    }
+  /** Public: called externally when the theme changes. */
+  async refresh() {
+    if (!this.view?.webview) return;
+    await this._load();
   }
 }
 
@@ -459,11 +864,9 @@ const THEME_MOODS = {
 // ─── Commands ─────────────────────────────────────────────────────────────────
 
 async function cmdGenerateTheme(context) {
-  // Ensure the custom themes directory exists inside the extension
   const dir = customThemesDir();
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-  // ── Step 1: base colour ───────────────────────────────────────────────────
   const colorInput = await vscode.window.showInputBox({
     title:       'Forest Ash Theme Generator - Step 1 of 3',
     prompt:      'Enter your base accent color as a hex value',
@@ -478,7 +881,6 @@ async function cmdGenerateTheme(context) {
   if (!colorInput) return;
   const baseColor = colorInput.trim().toLowerCase();
 
-  // ── Step 2: variant ───────────────────────────────────────────────────────
   const variant = await vscode.window.showQuickPick(
     [
       { label: '$(moon) Dark',  description: 'Deep, low-glare', id: 'dark'  },
@@ -489,7 +891,6 @@ async function cmdGenerateTheme(context) {
   if (!variant) return;
   const isDark = variant.id === 'dark';
 
-  // ── Step 3: name ──────────────────────────────────────────────────────────
   const defaultName =
     `Forest Ash Custom ${baseColor.toUpperCase()}${isDark ? '' : ' Light'}`;
   const themeName = await vscode.window.showInputBox({
@@ -504,7 +905,6 @@ async function cmdGenerateTheme(context) {
   if (!themeName) return;
   const label = themeName.trim();
 
-  // Duplicate check
   const customs = getCustomThemes(context);
   if (customs.some(t => t.label === label)) {
     vscode.window.showErrorMessage(
@@ -513,7 +913,6 @@ async function cmdGenerateTheme(context) {
     return;
   }
 
-  // ── Generate & write theme file ───────────────────────────────────────────
   const safeId    = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const timestamp = Date.now();
   const fileName  = `custom-${timestamp}-${safeId}.json`;
@@ -528,7 +927,6 @@ async function cmdGenerateTheme(context) {
     return;
   }
 
-  // ── Patch package.json so VS Code registers the theme ─────────────────────
   try {
     const meta = {
       label,
@@ -549,7 +947,6 @@ async function cmdGenerateTheme(context) {
     return;
   }
 
-  // ── Prompt reload so VS Code picks up the new package.json entry ──────────
   const action = await vscode.window.showInformationMessage(
     `"${label}" created. Reload window to make it appear in the theme picker (Cmd+K Cmd+T).`,
     'Reload Now',
@@ -795,7 +1192,7 @@ function scheduleFocusUpdate(context) {
 }
 
 async function applyFocusModeColors(context) {
-  const theme = await readThemeJsonByLabel(context, getActiveThemeLabel());
+  const theme = await readAnyThemeJsonByLabel(context, getActiveThemeLabel());
   const colors = theme?.colors || {};
   const bg = colors['editor.background'] || ((theme?.type || 'dark') === 'dark' ? '#1e1e1e' : '#ffffff');
   const fg = colors['editor.foreground'] || '#cccccc';
@@ -844,7 +1241,7 @@ function getItalicScopesFromTheme(themeJson) {
 }
 
 async function applyItalicMode(context, enabled) {
-  const theme = await readThemeJsonByLabel(context, getActiveThemeLabel());
+  const theme = await readAnyThemeJsonByLabel(context, getActiveThemeLabel());
   const scopes = getItalicScopesFromTheme(theme);
   const rules = [
     {
@@ -873,9 +1270,9 @@ async function applyHighContrast(context, enabled) {
     return;
   }
 
-  const theme = await readThemeJsonByLabel(context, getActiveThemeLabel());
+  const theme = await readAnyThemeJsonByLabel(context, getActiveThemeLabel());
   if (!theme) {
-    vscode.window.showWarningMessage('High Contrast Boost works on Forest Ash themes only.');
+    vscode.window.showWarningMessage('High Contrast Boost: could not read active theme.');
     return;
   }
 
@@ -1013,13 +1410,13 @@ async function cmdApplyCircadianTheme(context) {
   vscode.window.showInformationMessage('Circadian theme applied.');
 }
 
-// ─── Theme Preview / Palette Inspector ───────────────────────────────────────
+// ─── Theme Preview ────────────────────────────────────────────────────────────
 
 async function cmdPreviewThemes(context) {
   const cards = [];
 
   for (const theme of STATIC_THEMES) {
-    const themeJson = await readThemeJsonByLabel(context, theme.label);
+    const themeJson = await readAnyThemeJsonByLabel(context, theme.label);
     if (!themeJson) continue;
     const colors = themeJson.colors || {};
     const bg = colors['editor.background'] || (themeJson.type === 'light' ? '#ffffff' : '#1e1e1e');
@@ -1055,20 +1452,36 @@ async function cmdPreviewThemes(context) {
   });
 }
 
+// ─── Palette Inspector — sidebar only, never opens a new tab ─────────────────
+
 async function cmdShowPaletteInspector() {
   if (!paletteViewProvider) {
     vscode.window.showInformationMessage('Palette inspector is not available yet.');
     return;
   }
-  await paletteViewProvider.reveal();
+
+  // Reveal the sidebar view; never fall back to creating a panel/tab.
+  try {
+    if (paletteViewProvider.view && typeof paletteViewProvider.view.show === 'function') {
+      paletteViewProvider.view.show(true);
+    } else {
+      await vscode.commands.executeCommand(
+        'workbench.view.extension.forestAsh-paletteView'
+      );
+    }
+  } catch (err) {
+    console.error('[ForestAsh] Failed to reveal palette view:', err?.message || err);
+  }
+
+  // Always refresh so tiles reflect the currently active theme
   await paletteViewProvider.refresh();
 }
 
 async function cmdExportPaletteCss(context) {
   const themeLabel = getActiveThemeLabel();
-  const theme = await readThemeJsonByLabel(context, themeLabel);
+  const theme = await readAnyThemeJsonByLabel(context, themeLabel);
   if (!theme?.colors) {
-    vscode.window.showInformationMessage('Active theme is not a Forest Ash theme.');
+    vscode.window.showInformationMessage('Could not read palette for the active theme.');
     return;
   }
 
@@ -1323,16 +1736,36 @@ async function cmdImportCustomTheme(context) {
 // ─── activate / deactivate ────────────────────────────────────────────────────
 
 function activate(context) {
-  // Ensure the custom themes directory exists
   const dir = customThemesDir();
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-  // Silently repair package.json on every activation
+  // Patch package.json so `forestAsh.paletteView` is declared as a webview view.
+  // Without "type": "webview" VS Code treats it as a tree view and never calls
+  // resolveWebviewView, showing "There is no data provider registered" instead.
+  let paletteViewNeedsReload = false;
+  try {
+    paletteViewNeedsReload = ensurePaletteViewWebviewType();
+  } catch (err) {
+    console.error('[ForestAsh] ensurePaletteViewWebviewType failed:', err.message);
+  }
+
   try {
     syncPackageJsonOnActivation(context);
   } catch (err) {
-    // Non-fatal — log but don't break activation
     console.error('[ForestAsh] syncPackageJson failed:', err.message);
+  }
+
+  // If we just patched the view type for the first time, ask for a reload so
+  // VS Code picks up the new "type": "webview" declaration.
+  if (paletteViewNeedsReload) {
+    vscode.window.showInformationMessage(
+      'Forest Ash: palette view updated — reload once to activate color tiles.',
+      'Reload Now'
+    ).then(action => {
+      if (action === 'Reload Now') {
+        vscode.commands.executeCommand('workbench.action.reloadWindow');
+      }
+    });
   }
 
   const focusOpacity = vscode.workspace.getConfiguration('forestAsh').get('focusMode.dimOpacity', 0.35);
@@ -1351,9 +1784,8 @@ function activate(context) {
     vscode.window.onDidChangeTextEditorSelection(() => scheduleFocusUpdate(context)),
     vscode.workspace.onDidChangeTextDocument(() => scheduleFocusUpdate(context)),
     vscode.window.onDidChangeActiveColorTheme(() => {
-      if (paletteViewProvider) {
-        paletteViewProvider.refresh();
-      }
+      // Refresh palette tiles whenever the user switches theme
+      paletteViewProvider?.refresh();
     })
   );
 

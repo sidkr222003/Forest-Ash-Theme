@@ -16,6 +16,7 @@
     "forest",
     "ash",
     "dark",
+    
     "light",
     "anime",
     "eye-friendly",
@@ -161,6 +162,7 @@
     "views": {
       "forestAshViews": [
         {
+          "type":"webview",
           "id": "forestAsh.paletteView",
           "name": "Active Palette"
         },

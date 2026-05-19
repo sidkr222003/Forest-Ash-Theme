@@ -31,4 +31,4 @@ resources/file.svg
 resources/dark.png
 resources/light.png
 resources/demo.
-resources/demo_generator/**
+resources/demo_generator/*.png
