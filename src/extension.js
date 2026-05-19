@@ -30,8 +30,9 @@ const LANGUAGE_RULE_NAME = 'Forest Ash Language Accent';
 let focusDecoration = null;
 let focusUpdateTimer = null;
 let circadianTimer = null;
-let paletteViewProvider = null;
-let customThemesProvider = null;
+let paletteViewProvider    = null;
+let themePreviewProvider   = null;
+let customThemesProvider   = null;
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
 
@@ -1412,44 +1413,346 @@ async function cmdApplyCircadianTheme(context) {
 
 // ─── Theme Preview ────────────────────────────────────────────────────────────
 
-async function cmdPreviewThemes(context) {
-  const cards = [];
+// ─── Theme Preview — sidebar webview ─────────────────────────────────────────
 
-  for (const theme of STATIC_THEMES) {
-    const themeJson = await readAnyThemeJsonByLabel(context, theme.label);
-    if (!themeJson) continue;
-    const colors = themeJson.colors || {};
-    const bg = colors['editor.background'] || (themeJson.type === 'light' ? '#ffffff' : '#1e1e1e');
-    const fg = colors['editor.foreground'] || '#cccccc';
-    const accent = colors['textLink.foreground'] || colors['editorCursor.foreground'] || fg;
-    const syntax = extractSyntaxColors(themeJson);
-    cards.push({
-      label: theme.label,
-      bg,
-      fg,
-      accent,
-      syntax,
-      typeLabel: themeJson.type === 'light' ? 'Light' : 'Dark',
-    });
-  }
-
-  const panel = vscode.window.createWebviewPanel(
-    'forestAshPreview',
-    'Forest Ash Theme Preview',
-    vscode.ViewColumn.One,
-    { enableScripts: true }
+function buildSidebarPreviewHtml(cards, activeLabel) {
+  const esc = s => String(s).replace(/[&<>"']/g, m =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]
   );
 
-  panel.webview.html = buildThemePreviewHtml(cards);
-  panel.webview.onDidReceiveMessage(async message => {
-    if (message.type === 'applyTheme' && message.label) {
-      await vscode.workspace.getConfiguration('workbench').update(
-        'colorTheme',
-        message.label,
-        vscode.ConfigurationTarget.Global
-      );
+  if (!cards || cards.length === 0) {
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<style>body{margin:0;padding:20px 14px;font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:transparent;font-size:12px;}.msg{opacity:.65;font-style:italic;}</style>
+</head><body><p class="msg">Loading themes…</p></body></html>`;
+  }
+
+  // Split dark / light
+  const darkCards  = cards.filter(c => c.typeLabel === 'Dark');
+  const lightCards = cards.filter(c => c.typeLabel === 'Light');
+
+  const renderCard = c => {
+    const isActive = c.label === activeLabel;
+    // 5-swatch strip from syntax colors
+    const swatches = Object.values(c.syntax).slice(0, 5).map(col =>
+      `<span class="sw" style="background:${esc(col)}"></span>`
+    ).join('');
+    // Mini code preview lines
+    const codeLine = (color, text, w) =>
+      `<div class="cl"><span style="width:${w}%;background:${esc(color)};opacity:.85"></span></div>`;
+    const lines = [
+      codeLine(c.syntax.keyword || c.accent, 'kw', 32),
+      codeLine(c.syntax.string  || c.accent, 'st', 55),
+      codeLine(c.syntax.comment || c.fg,     'cm', 44),
+      codeLine(c.syntax.func    || c.accent, 'fn', 38),
+      codeLine(c.fg,                         'tx', 60),
+    ].join('');
+
+    return `<div class="card${isActive ? ' active' : ''}"
+               data-label="${esc(c.label)}"
+               style="--bg:${esc(c.bg)};--fg:${esc(c.fg)};--ac:${esc(c.accent)};"
+               onclick="apply('${esc(c.label)}')">
+
+      <!-- mini editor mockup -->
+      <div class="preview" style="background:${esc(c.bg)}">
+        <div class="titlebar" style="background:${esc(c.bg)};border-bottom:1px solid ${esc(c.accent)}22;">
+          <span class="dot" style="background:#ff5f57"></span>
+          <span class="dot" style="background:#febc2e"></span>
+          <span class="dot" style="background:#28c840"></span>
+          <span class="tab" style="color:${esc(c.fg)};border-bottom:2px solid ${esc(c.accent)};">
+            ${esc(c.label.replace('Forest Ash ', ''))}
+          </span>
+        </div>
+        <div class="code-area">
+          <div class="gutter">
+            ${[1,2,3,4,5].map(n => `<div class="ln" style="color:${esc(c.fg)}44">${n}</div>`).join('')}
+          </div>
+          <div class="lines">${lines}</div>
+        </div>
+        <div class="statusbar" style="background:${esc(c.accent)}cc;">
+          <span style="color:${esc(c.bg)};font-size:8px;padding:0 6px;opacity:.9;">
+            ${esc(c.typeLabel)}
+          </span>
+        </div>
+      </div>
+
+      <!-- card footer -->
+      <div class="footer" style="background:${esc(c.bg)}ee;">
+        <div class="name" style="color:${esc(c.fg)};">${esc(c.label.replace('Forest Ash ', ''))}</div>
+        <div class="swatches">${swatches}</div>
+        ${isActive
+          ? `<div class="badge active-badge" style="background:${esc(c.accent)}33;color:${esc(c.accent)};">● Active</div>`
+          : `<button class="apply-btn" style="background:${esc(c.accent)};color:${esc(c.bg)};" onclick="event.stopPropagation();apply('${esc(c.label)}')">Apply</button>`
+        }
+      </div>
+    </div>`;
+  };
+
+  const section = (title, cardList) => cardList.length === 0 ? '' : `
+    <div class="section-head">${esc(title)} <span class="sect-count">${cardList.length}</span></div>
+    <div class="grid">${cardList.map(renderCard).join('')}</div>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:var(--vscode-font-family,system-ui,sans-serif);
+    font-size:11px;
+    color:var(--vscode-foreground);
+    background:transparent;
+    padding-bottom:24px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ── sticky header ── */
+  .header{
+    position:sticky;top:0;z-index:20;
+    background:var(--vscode-sideBar-background,#252526);
+    border-bottom:1px solid var(--vscode-panel-border,#3c3c3c);
+    padding:10px 12px 8px;
+  }
+  .header h2{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .header .meta{font-size:10px;opacity:.5;margin-top:2px;}
+
+  /* ── search ── */
+  .search-wrap{padding:8px 10px 2px;}
+  .search-wrap input{
+    width:100%;padding:5px 8px;font-size:11px;
+    background:var(--vscode-input-background,#3c3c3c);
+    color:var(--vscode-input-foreground,#ccc);
+    border:1px solid var(--vscode-input-border,#555);
+    border-radius:3px;outline:none;
+  }
+  .search-wrap input:focus{border-color:var(--vscode-focusBorder,#007acc);}
+
+  /* ── section heading ── */
+  .section-head{
+    font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--vscode-descriptionForeground,#888);
+    padding:10px 12px 5px;
+    display:flex;align-items:center;gap:5px;
+  }
+  .sect-count{font-weight:400;font-size:9px;opacity:.6;letter-spacing:0;text-transform:none;}
+
+  /* ── grid ── */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+    gap:8px;
+    padding:0 10px 4px;
+  }
+
+  /* ── card ── */
+  .card{
+    border-radius:8px;
+    overflow:hidden;
+    cursor:pointer;
+    border:1.5px solid var(--vscode-panel-border,#3c3c3c);
+    transition:transform .15s,box-shadow .15s,border-color .15s;
+    background:var(--vscode-sideBar-background);
+  }
+  .card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 6px 18px rgba(0,0,0,.5);
+    border-color:var(--bg, #555);
+  }
+  .card.active{
+    border-color:var(--ac,#007acc);
+    box-shadow:0 0 0 1px var(--ac,#007acc);
+  }
+  .card.hidden{display:none;}
+
+  /* ── mini editor mockup ── */
+  .preview{
+    height:88px;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+  }
+  .titlebar{
+    display:flex;align-items:center;gap:4px;
+    padding:4px 6px;flex-shrink:0;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;}
+  .tab{
+    font-size:8px;padding:0 5px 2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    max-width:80px;
+    opacity:.85;
+  }
+  .code-area{
+    display:flex;flex:1;overflow:hidden;padding:3px 0 2px;
+  }
+  .gutter{
+    display:flex;flex-direction:column;gap:2px;
+    padding:0 5px;flex-shrink:0;
+  }
+  .ln{font-size:7px;line-height:1;font-variant-numeric:tabular-nums;}
+  .lines{flex:1;display:flex;flex-direction:column;gap:3px;padding:0 4px;}
+  .cl{height:7px;border-radius:2px;overflow:hidden;}
+  .cl span{display:block;height:100%;border-radius:2px;}
+  .statusbar{height:10px;flex-shrink:0;display:flex;align-items:center;}
+
+  /* ── card footer ── */
+  .footer{
+    padding:6px 8px 7px;
+    display:flex;flex-direction:column;gap:4px;
+    border-top:1px solid rgba(255,255,255,.07);
+  }
+  .name{
+    font-size:10px;font-weight:600;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    opacity:.9;
+  }
+  .swatches{display:flex;gap:3px;}
+  .sw{
+    flex:1;height:5px;border-radius:2px;
+    min-width:0;
+  }
+  .apply-btn{
+    width:100%;margin-top:1px;
+    padding:4px 0;border:none;border-radius:4px;
+    font-size:10px;font-weight:600;cursor:pointer;
+    transition:opacity .15s;
+  }
+  .apply-btn:hover{opacity:.85;}
+  .active-badge{
+    width:100%;margin-top:1px;
+    padding:3px 0;border-radius:4px;
+    font-size:10px;font-weight:600;
+    text-align:center;
+  }
+
+  /* ── toast ── */
+  #toast{
+    position:fixed;bottom:12px;left:50%;transform:translateX(-50%) translateY(12px);
+    background:var(--vscode-badge-background,#4d4d4d);
+    color:var(--vscode-badge-foreground,#fff);
+    padding:4px 14px;border-radius:20px;
+    font-size:10px;pointer-events:none;
+    opacity:0;transition:opacity .2s,transform .2s;z-index:99;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>🎨 Theme Preview</h2>
+  <div class="meta">${cards.length} themes</div>
+</div>
+
+<div class="search-wrap">
+  <input id="q" type="text" placeholder="Search themes…" oninput="filter(this.value)">
+</div>
+
+${section('Dark', darkCards)}
+${section('Light', lightCards)}
+
+<div id="toast"></div>
+
+<script>
+  const vscode = acquireVsCodeApi();
+
+  function apply(label) {
+    vscode.postMessage({ type: 'applyTheme', label });
+    showToast('Applied: ' + label.replace('Forest Ash ', ''));
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  function filter(q) {
+    const lq = q.trim().toLowerCase();
+    document.querySelectorAll('.card').forEach(card => {
+      const match = !lq || card.dataset.label.toLowerCase().includes(lq);
+      card.classList.toggle('hidden', !match);
+    });
+  }
+</script>
+</body>
+</html>`;
+}
+
+class ThemePreviewProvider {
+  constructor(context) {
+    this.context = context;
+    this.view    = null;
+  }
+
+  resolveWebviewView(view) {
+    this.view = view;
+    view.webview.options = { enableScripts: true, retainContextWhenHidden: true };
+
+    // Immediate placeholder
+    view.webview.html = buildSidebarPreviewHtml([], null);
+
+    view.webview.onDidReceiveMessage(async message => {
+      if (message.type === 'applyTheme' && message.label) {
+        await vscode.workspace.getConfiguration('workbench').update(
+          'colorTheme', message.label, vscode.ConfigurationTarget.Global
+        );
+        // Refresh palette tiles after apply
+        paletteViewProvider?.refresh();
+      }
+    });
+
+    this._load();
+  }
+
+  async _load() {
+    const activeLabel = getActiveThemeLabel();
+    const cards = [];
+
+    for (const theme of STATIC_THEMES) {
+      try {
+        const themeJson = await readAnyThemeJsonByLabel(this.context, theme.label);
+        if (!themeJson) continue;
+        const colors = themeJson.colors || {};
+        const bg     = colors['editor.background'] || (themeJson.type === 'light' ? '#f5f5f5' : '#1e1e1e');
+        const fg     = colors['editor.foreground'] || (themeJson.type === 'light' ? '#333' : '#ccc');
+        const accent = colors['textLink.foreground'] || colors['editorCursor.foreground'] || fg;
+        const syntax = extractSyntaxColors(themeJson);
+        cards.push({ label: theme.label, bg, fg, accent, syntax, typeLabel: themeJson.type === 'light' ? 'Light' : 'Dark' });
+      } catch (_) {}
     }
-  });
+
+    if (!this.view?.webview) return;
+    this.view.webview.html = buildSidebarPreviewHtml(cards, activeLabel);
+  }
+
+  async refresh() {
+    if (!this.view?.webview) return;
+    await this._load();
+  }
+}
+
+async function cmdPreviewThemes() {
+  if (!themePreviewProvider) {
+    vscode.window.showInformationMessage('Theme preview is not available yet.');
+    return;
+  }
+
+  // Reveal the sidebar view — collapse palette, expand preview
+  try {
+    await vscode.commands.executeCommand('forestAsh.themePreviewView.focus');
+  } catch (_) {
+    try {
+      if (themePreviewProvider.view?.show) themePreviewProvider.view.show(true);
+    } catch (_) {}
+  }
+
+  await themePreviewProvider.refresh();
 }
 
 // ─── Palette Inspector — sidebar only, never opens a new tab ─────────────────
@@ -1459,21 +1762,12 @@ async function cmdShowPaletteInspector() {
     vscode.window.showInformationMessage('Palette inspector is not available yet.');
     return;
   }
-
-  // Reveal the sidebar view; never fall back to creating a panel/tab.
+  // Focus palette view — VS Code automatically collapses other views in the same container
   try {
-    if (paletteViewProvider.view && typeof paletteViewProvider.view.show === 'function') {
-      paletteViewProvider.view.show(true);
-    } else {
-      await vscode.commands.executeCommand(
-        'workbench.view.extension.forestAsh-paletteView'
-      );
-    }
-  } catch (err) {
-    console.error('[ForestAsh] Failed to reveal palette view:', err?.message || err);
+    await vscode.commands.executeCommand('forestAsh.paletteView.focus');
+  } catch (_) {
+    try { if (paletteViewProvider.view?.show) paletteViewProvider.view.show(true); } catch (_) {}
   }
-
-  // Always refresh so tiles reflect the currently active theme
   await paletteViewProvider.refresh();
 }
 
@@ -1771,12 +2065,19 @@ function activate(context) {
   const focusOpacity = vscode.workspace.getConfiguration('forestAsh').get('focusMode.dimOpacity', 0.35);
   createFocusDecoration(focusOpacity);
 
-  customThemesProvider = new CustomThemesProvider(context);
-  paletteViewProvider = new PaletteViewProvider(context);
+  customThemesProvider  = new CustomThemesProvider(context);
+  paletteViewProvider   = new PaletteViewProvider(context);
+  themePreviewProvider  = new ThemePreviewProvider(context);
 
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider('forestAsh.customThemesView', customThemesProvider),
-    vscode.window.registerWebviewViewProvider('forestAsh.paletteView', paletteViewProvider)
+    vscode.window.registerTreeDataProvider(
+      'forestAsh.customThemesView', customThemesProvider),
+    vscode.window.registerWebviewViewProvider(
+      'forestAsh.paletteView', paletteViewProvider,
+      { webviewOptions: { retainContextWhenHidden: true } }),
+    vscode.window.registerWebviewViewProvider(
+      'forestAsh.themePreviewView', themePreviewProvider,
+      { webviewOptions: { retainContextWhenHidden: true } }),
   );
 
   context.subscriptions.push(
@@ -1784,8 +2085,9 @@ function activate(context) {
     vscode.window.onDidChangeTextEditorSelection(() => scheduleFocusUpdate(context)),
     vscode.workspace.onDidChangeTextDocument(() => scheduleFocusUpdate(context)),
     vscode.window.onDidChangeActiveColorTheme(() => {
-      // Refresh palette tiles whenever the user switches theme
+      // Refresh both sidebar views when the theme changes
       paletteViewProvider?.refresh();
+      themePreviewProvider?.refresh();
     })
   );
 
@@ -1807,7 +2109,7 @@ function activate(context) {
     vscode.commands.registerCommand(
       'forestAsh.toggleHighContrast', () => cmdToggleHighContrast(context)),
     vscode.commands.registerCommand(
-      'forestAsh.previewThemes', () => cmdPreviewThemes(context)),
+      'forestAsh.previewThemes', () => cmdPreviewThemes()),
     vscode.commands.registerCommand(
       'forestAsh.showPaletteInspector', () => cmdShowPaletteInspector()),
     vscode.commands.registerCommand(
@@ -1889,6 +2191,7 @@ function activate(context) {
           await applyItalicMode(context, true);
         }
         paletteViewProvider?.refresh();
+        themePreviewProvider?.refresh();
       }
     })
   );
