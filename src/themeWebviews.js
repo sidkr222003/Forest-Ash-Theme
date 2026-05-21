@@ -55,7 +55,7 @@ function buildThemePreviewHtml(cards) {
     const sample = `\
 <span class="kw">function</span> <span class="fn">kintsugi</span>(<span class="var">ash</span>) {\n\
   <span class="com">// restore broken lines</span>\n\
-  <span class="kw">const</span> <span class="var">veil</span> = <span class="str">\"forest-ash\"</span>;\n\
+  <span class="kw">const</span> <span class="var">veil</span> = <span class="str">"forest-ash"</span>;\n\
   <span class="kw">return</span> <span class="fn">polish</span>(<span class="var">ash</span>) + <span class="num">7</span>;\n\
 }`;
 
@@ -393,63 +393,757 @@ function buildPaletteInspectorHtml(themeLabel, colors, options = {}) {
 </html>`;
 }
 
+// ─── Theme of the Week — VS Code native-style overlay ────────────────────────
+//
+// Designed to feel like a first-party VS Code modal: the command-palette chrome,
+// tight information density, live mini editor mockup, colour palette row, and
+// syntax token legend — all within a single self-contained HTML string.
+
 function buildThemeOfWeekHtml(theme) {
+  // Derive a predictable accent from the theme label (used for glow/highlight)
+  // so the panel has colour personality even without reading the full theme JSON.
+  // The caller may optionally pass theme.colors and theme.syntax for richer data.
+  const colors  = theme.colors  || {};
+  const syntax  = theme.syntax  || {};
+
+  const bg      = colors['editor.background']       || '#1e2227';
+  const fg      = colors['editor.foreground']        || '#abb2bf';
+  const accent  = colors['editorCursor.foreground']  || colors['textLink.foreground'] || '#61afef';
+  const comment = syntax.comment || colors['editorLineNumber.foreground'] || '#5c6370';
+  const str     = syntax.string  || '#98c379';
+  const kw      = syntax.keyword || '#c678dd';
+  const fn      = syntax.function|| '#61afef';
+  const num     = syntax.number  || '#d19a66';
+  const variable= syntax.variable|| fg;
+
+  // Derive a small palette strip from known color keys (fallback to accent tints)
+  const paletteKeys = [
+    ['editor.background',        bg],
+    ['editor.foreground',        fg],
+    ['editorCursor.foreground',  accent],
+    ['statusBar.background',     colors['statusBar.background']     || accent],
+    ['activityBar.background',   colors['activityBar.background']   || bg],
+    ['tab.activeBackground',     colors['tab.activeBackground']     || bg],
+    ['sideBar.background',       colors['sideBar.background']       || bg],
+    ['titleBar.activeBackground',colors['titleBar.activeBackground']|| bg],
+  ];
+
+  const swatchHtml = paletteKeys.map(([label, hex]) => {
+    // Perceived luminance for contrast-safe label
+    let r = 0, g = 0, b = 0;
+    try {
+      const h = hex.replace('#','').slice(0,6);
+      r = parseInt(h.slice(0,2),16); g = parseInt(h.slice(2,4),16); b = parseInt(h.slice(4,6),16);
+    } catch(_) {}
+    const lum  = (0.299*r + 0.587*g + 0.114*b);
+    const text = lum > 128 ? '#111' : '#eee';
+    return `<div class="sw-tile" title="${escHtml(label)}" style="background:${escHtml(hex)};color:${text};">
+      <span class="sw-hex">${escHtml(hex.toUpperCase())}</span>
+      <span class="sw-label">${escHtml(label.split('.').pop())}</span>
+    </div>`;
+  }).join('');
+
+  // Token legend rows
+  const tokens = [
+    { role: 'Keyword',   color: kw,      sample: 'function · const · return' },
+    { role: 'String',    color: str,     sample: '"forest-ash" · `template`' },
+    { role: 'Function',  color: fn,      sample: 'kintsugi() · polish()' },
+    { role: 'Number',    color: num,     sample: '42 · 3.14 · 0xff' },
+    { role: 'Comment',   color: comment, sample: '// restore broken lines' },
+  ];
+  const tokenRows = tokens.map(t => `
+    <div class="tok-row">
+      <span class="tok-dot" style="background:${escHtml(t.color)};box-shadow:0 0 6px ${escHtml(t.color)}88;"></span>
+      <span class="tok-role">${escHtml(t.role)}</span>
+      <span class="tok-sample" style="color:${escHtml(t.color)};">${escHtml(t.sample)}</span>
+    </div>`).join('');
+
+  // Mini editor mockup (inline SVG-style using divs)
+  const codeLines = [
+    { parts: [
+      { t: 'kw', v: 'function' }, { t: 'sp', v: ' ' },
+      { t: 'fn', v: 'kintsugi' }, { t: 'pl', v: '(' },
+      { t: 'vr', v: 'ash' },      { t: 'pl', v: ')' }, { t: 'sp', v: ' {' },
+    ]},
+    { parts: [
+      { t: 'sp', v: '  ' },
+      { t: 'cm', v: '// restore broken lines' },
+    ]},
+    { parts: [
+      { t: 'sp', v: '  ' },
+      { t: 'kw', v: 'const' }, { t: 'sp', v: ' ' },
+      { t: 'vr', v: 'veil' },  { t: 'sp', v: ' = ' },
+      { t: 'st', v: '"forest-ash"' }, { t: 'pl', v: ';' },
+    ]},
+    { parts: [
+      { t: 'sp', v: '  ' },
+      { t: 'kw', v: 'return' }, { t: 'sp', v: ' ' },
+      { t: 'fn', v: 'polish' }, { t: 'pl', v: '(' },
+      { t: 'vr', v: 'ash' },   { t: 'pl', v: ') + ' },
+      { t: 'nm', v: '7' },     { t: 'pl', v: ';' },
+    ]},
+    { parts: [{ t: 'pl', v: '}' }] },
+  ];
+
+  const typeColorMap = { kw, fn, cm: comment, st: str, nm: num, vr: variable, pl: fg+'bb', sp: fg };
+  const editorLines = codeLines.map((line, i) => {
+    const spans = line.parts.map(p => {
+      const c = typeColorMap[p.t] || fg;
+      const style = `color:${escHtml(c)};${p.t === 'cm' ? 'font-style:italic;opacity:.75;' : ''}`;
+      return `<span style="${style}">${escHtml(p.v)}</span>`;
+    }).join('');
+    return `<div class="ed-line">
+      <span class="ed-ln">${i + 1}</span>
+      <span class="ed-code">${spans}</span>
+    </div>`;
+  }).join('');
+
+  const shortName = theme.label.replace(/^Forest Ash\s*/i, '') || theme.label;
+  const isLight   = (theme.type || 'dark') === 'light';
+  const typeTag   = isLight ? 'Light' : 'Dark';
+  const iconHtml  = theme.icon
+    ? `<img src="${escHtml(theme.icon)}" alt="Forest Ash icon" />`
+    : '<span class="identity-fallback">FA</span>';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Forest Ash Theme of the Week</title>
+<title>Forest Ash · Theme of the Week</title>
 <style>
-  body {
-    margin: 0;
-    padding: 32px;
-    font-family: var(--vscode-font-family);
-    background: var(--vscode-editor-background);
-    color: var(--vscode-foreground);
-  }
-  .card {
-    border-radius: 18px;
-    border: 1px solid var(--vscode-panel-border);
-    padding: 24px;
-    max-width: 480px;
-  }
-  h1 {
-    font-size: 18px;
-    margin: 0 0 12px 0;
-  }
-  .label {
-    font-size: 22px;
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
-  .mood {
-    opacity: 0.8;
-    margin-bottom: 16px;
-  }
-  button {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-    border: none;
-    padding: 8px 12px;
-    border-radius: 10px;
-    cursor: pointer;
-  }
+/* ── Reset & base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--vscode-font-family, 'Segoe UI', system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--vscode-foreground, #cccccc);
+  background: var(--vscode-editor-background, #1e1e1e);
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* ── Scrim layer (mimics VS Code dialog backdrop) ─────────── */
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(2px);
+  z-index: 0;
+}
+
+/* ── Main panel — VS Code command-palette proportions ──────── */
+.panel {
+  position: relative;
+  z-index: 1;
+  margin: 48px auto;
+  width: min(780px, calc(100vw - 32px));
+  background: var(--vscode-quickInput-background, #252526);
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 6px;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.65),
+    0 0 0 1px rgba(255,255,255,0.04);
+  overflow: hidden;
+  animation: slideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-14px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* ── Titlebar strip ────────────────────────────────────────── */
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 14px;
+  height: 35px;
+  background: var(--vscode-titleBar-activeBackground, #3c3c3c);
+  border-bottom: 1px solid var(--vscode-widget-border, #454545);
+  user-select: none;
+}
+.titlebar-dots {
+  display: flex;
+  gap: 6px;
+  margin-right: 12px;
+}
+.dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+}
+.dot-r { background: #ff5f57; }
+.dot-y { background: #febc2e; }
+.dot-g { background: #28c840; }
+.titlebar-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--vscode-titleBar-activeForeground, rgba(255,255,255,0.7));
+  flex: 1;
+}
+.titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.titlebar-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: ${escHtml(accent)}22;
+  color: ${escHtml(accent)};
+  border: 1px solid ${escHtml(accent)}44;
+}
+
+/* ── Body layout ───────────────────────────────────────────── */
+.body {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  min-height: 0;
+}
+
+/* ── Left column ───────────────────────────────────────────── */
+.left {
+  padding: 20px 20px 20px 20px;
+  border-right: 1px solid var(--vscode-widget-border, #454545);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* ── Theme identity block ──────────────────────────────────── */
+.identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.identity-icon {
+  width: 44px; height: 44px;
+  border-radius: 8px;
+  background: ${escHtml(accent)}18;
+  border: 1px solid ${escHtml(accent)}33;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.identity-icon img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+}
+.identity-fallback {
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: ${escHtml(accent)};
+}
+.identity-meta { flex: 1; min-width: 0; }
+.identity-name {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: var(--vscode-foreground, #e8e8e8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.identity-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+}
+.tag {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  background: rgba(255,255,255,0.07);
+}
+
+/* ── Mood blurb ────────────────────────────────────────────── */
+.mood {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+  border-left: 2px solid ${escHtml(accent)}66;
+}
+
+/* ── Mini editor mockup ─────────────────────────────────────── */
+.editor-mockup {
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: ${escHtml(bg)};
+  flex-shrink: 0;
+}
+.ed-topbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: ${escHtml(bg)}f0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.ed-tab {
+  font-size: 11px;
+  padding: 2px 10px 2px;
+  border-radius: 3px 3px 0 0;
+  color: ${escHtml(fg)};
+  background: ${escHtml(bg)};
+  border-bottom: 2px solid ${escHtml(accent)};
+  opacity: 0.9;
+}
+.ed-body {
+  display: flex;
+  padding: 8px 0 10px;
+  font-family: var(--vscode-editor-font-family, 'Cascadia Code', 'Fira Code', monospace);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.ed-gutter {
+  padding: 0 10px 0 12px;
+  text-align: right;
+  color: ${escHtml(fg)}44;
+  font-size: 11px;
+  user-select: none;
+  min-width: 36px;
+  flex-shrink: 0;
+}
+.ed-lines { flex: 1; padding-right: 12px; overflow-x: auto; }
+.ed-line { display: flex; align-items: baseline; white-space: pre; }
+.ed-ln {
+  display: block;
+  line-height: 1.7;
+  font-size: 11px;
+  color: ${escHtml(fg)}44;
+  text-align: right;
+  padding-right: 10px;
+  min-width: 24px;
+  flex-shrink: 0;
+  user-select: none;
+}
+.ed-code { flex: 1; }
+.ed-statusbar {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  height: 20px;
+  background: ${escHtml(accent)};
+  font-size: 10px;
+  color: #fff;
+  gap: 10px;
+  opacity: 0.92;
+}
+
+/* ── Token legend ────────────────────────────────────────────── */
+.legend-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground, #777);
+  margin-bottom: 8px;
+}
+.tok-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.tok-row:last-child { border-bottom: none; }
+.tok-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tok-role {
+  font-size: 11px;
+  font-weight: 600;
+  width: 66px;
+  flex-shrink: 0;
+  color: var(--vscode-foreground, #ccc);
+  opacity: 0.8;
+}
+.tok-sample {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10.5px;
+  opacity: 0.85;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Right column ─────────────────────────────────────────── */
+.right {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* ── Section labels ──────────────────────────────────────── */
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground, #777);
+  margin-bottom: 8px;
+}
+
+/* ── Palette strip ───────────────────────────────────────── */
+.palette-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.sw-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.1s, border-color 0.1s;
+  gap: 6px;
+}
+.sw-tile:hover {
+  transform: scale(1.02);
+  border-color: rgba(255,255,255,0.15);
+}
+.sw-tile.copied {
+  border-color: rgba(120,200,170,0.7);
+}
+.sw-hex {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  opacity: 0.95;
+}
+.sw-label {
+  font-size: 9px;
+  opacity: 0.75;
+  text-align: right;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Stats block ─────────────────────────────────────────── */
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 11px;
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-key { color: var(--vscode-descriptionForeground, #888); }
+.stat-val { font-weight: 600; color: var(--vscode-foreground, #ddd); }
+
+/* ── Action footer ─────────────────────────────────────────── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--vscode-widget-border, #454545);
+  background: rgba(0,0,0,0.12);
+}
+.footer-left {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground, #888);
+}
+.footer-left kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+}
+.footer-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.btn {
+  padding: 6px 14px;
+  border-radius: 3px;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  transition: opacity 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.btn:hover { opacity: 0.88; }
+.btn-secondary {
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #cccccc);
+}
+.btn-primary {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  font-weight: 600;
+}
+.btn-accent {
+  background: ${escHtml(accent)};
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 10px ${escHtml(accent)}55;
+}
+.btn-accent:hover { opacity: 0.9; }
+
+/* ── Dismiss ─────────────────────────────────────────────── */
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--vscode-titleBar-activeForeground, rgba(255,255,255,0.7));
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0.6;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+.close-btn:hover { opacity: 0.95; background: rgba(255,255,255,0.08); }
+
+/* ── Toast ───────────────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 18px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--vscode-badge-background, #4d4d4d);
+  color: var(--vscode-badge-foreground, #fff);
+  padding: 5px 14px;
+  border-radius: 3px;
+  font-size: 11px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Responsive collapse ─────────────────────────────────── */
+@media (max-width: 560px) {
+  .body { grid-template-columns: 1fr; }
+  .left { border-right: none; border-bottom: 1px solid var(--vscode-widget-border, #454545); }
+}
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Theme of the Week</h1>
-    <div class="label">${escHtml(theme.label)}</div>
-    <div class="mood">${escHtml(theme.mood)}</div>
-    <button data-theme="${escHtml(theme.label)}">Apply Theme</button>
+
+<div class="scrim"></div>
+
+<div class="panel" role="dialog" aria-modal="true" aria-label="Theme of the Week">
+
+  <!-- ── Titlebar ──────────────────────────────────────────── -->
+  <div class="titlebar">
+    <div class="titlebar-dots">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+    </div>
+    <span class="titlebar-label">Forest Ash · Theme of the Week</span>
+    <div class="titlebar-actions">
+      <span class="titlebar-badge">✦ Weekly Pick</span>
+      <button class="close-btn" id="closeBtn" title="Close (Escape)" aria-label="Close">✕</button>
+    </div>
   </div>
+
+  <!-- ── Body ──────────────────────────────────────────────── -->
+  <div class="body">
+
+    <!-- Left column -->
+    <div class="left">
+
+      <!-- Identity -->
+      <div class="identity">
+        <div class="identity-icon">${iconHtml}</div>
+        <div class="identity-meta">
+          <div class="identity-name">${escHtml(theme.label)}</div>
+          <div class="identity-sub">
+            <span class="tag">${escHtml(typeTag)}</span>
+            <span>Forest Ash Studio</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mood -->
+      <div class="mood">${escHtml(theme.mood)}</div>
+
+      <!-- Mini editor preview -->
+      <div>
+        <div class="legend-title" style="margin-bottom:8px;">Preview</div>
+        <div class="editor-mockup">
+          <div class="ed-topbar">
+            <span class="ed-tab">kintsugi.js</span>
+          </div>
+          <div class="ed-body">
+            <div class="ed-gutter">${[1,2,3,4,5].map(n=>`<div>${n}</div>`).join('')}</div>
+            <div class="ed-lines">${editorLines}</div>
+          </div>
+          <div class="ed-statusbar">
+            <span>${escHtml(shortName)}</span>
+            <span>JavaScript</span>
+            <span>UTF-8</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token legend -->
+      <div>
+        <div class="legend-title">Syntax Tokens</div>
+        ${tokenRows}
+      </div>
+
+    </div><!-- /left -->
+
+    <!-- Right column -->
+    <div class="right">
+
+      <!-- Color palette -->
+      <div>
+        <div class="section-label">Colour Palette</div>
+        <div class="palette-grid">${swatchHtml}</div>
+      </div>
+
+      <!-- Stats -->
+      <div>
+        <div class="section-label">Details</div>
+        <div class="stats">
+          <div class="stat-row">
+            <span class="stat-key">Variant</span>
+            <span class="stat-val">${escHtml(typeTag)}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-key">Publisher</span>
+            <span class="stat-val">Forest Ash</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-key">Category</span>
+            <span class="stat-val">Themes</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-key">Refreshes</span>
+            <span class="stat-val">Weekly</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /right -->
+
+  </div><!-- /body -->
+
+  <!-- ── Footer ────────────────────────────────────────────── -->
+  <div class="footer">
+    <div class="footer-left">
+      Press <kbd>Escape</kbd> to dismiss &nbsp;·&nbsp; Click a swatch to copy its hex
+    </div>
+    <div class="footer-actions">
+      <button class="btn btn-secondary" id="dismissBtn">Dismiss</button>
+      <button class="btn btn-secondary" id="applyBtn" data-theme="${escHtml(theme.label)}">
+        Apply Theme
+      </button>
+    </div>
+  </div>
+
+</div><!-- /panel -->
+
+<div id="toast"></div>
+
 <script>
   const vscode = acquireVsCodeApi();
-  document.querySelector('button[data-theme]').addEventListener('click', () => {
-    vscode.postMessage({ type: 'applyTheme', label: '${escHtml(theme.label)}' });
+
+  // ── Apply theme ───────────────────────────────────────────
+  document.getElementById('applyBtn').addEventListener('click', () => {
+    const label = document.getElementById('applyBtn').dataset.theme;
+    vscode.postMessage({ type: 'applyTheme', label });
+    showToast('Theme applied: ' + label.replace(/^Forest Ash\\s*/i, ''));
   });
+
+  // ── Dismiss (close panel)  ────────────────────────────────
+  function dismissPanel() {
+    document.querySelector('.panel').style.animation = 'none';
+    document.querySelector('.panel').style.opacity = '0';
+    document.querySelector('.panel').style.transform = 'translateY(-10px) scale(0.99)';
+    document.querySelector('.panel').style.transition = 'opacity 0.18s ease, transform 0.18s ease';
+    setTimeout(() => vscode.postMessage({ type: 'dismiss' }), 200);
+  }
+  document.getElementById('dismissBtn').addEventListener('click', dismissPanel);
+  document.getElementById('closeBtn').addEventListener('click', dismissPanel);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') dismissPanel(); });
+
+  // ── Swatch copy ───────────────────────────────────────────
+  document.querySelectorAll('.sw-tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      const hex = tile.querySelector('.sw-hex')?.textContent?.trim() || '';
+      if (!hex) return;
+      vscode.postMessage({ type: 'copy', value: hex });
+      tile.classList.add('copied');
+      setTimeout(() => tile.classList.remove('copied'), 700);
+      showToast('Copied ' + hex);
+    });
+  });
+
+  // ── Toast ─────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+  }
 </script>
+
 </body>
 </html>`;
 }

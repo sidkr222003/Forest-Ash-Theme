@@ -2183,7 +2183,30 @@ async function cmdShowThemeOfWeek(context, force = false) {
     { enableScripts: true }
   );
 
-  panel.webview.html = buildThemeOfWeekHtml({ label, mood });
+  let themeJson = null;
+  try {
+    themeJson = await readAnyThemeJsonByLabel(context, label);
+  } catch (_) {}
+
+  const colors = themeJson?.colors || {};
+  const syntax = themeJson ? extractSyntaxColors(themeJson) : {};
+  let type = themeJson?.type;
+  if (!type && colors['editor.background']) {
+    type = isLightColor(colors['editor.background']) ? 'light' : 'dark';
+  }
+
+  const iconUri = panel.webview.asWebviewUri(
+    vscode.Uri.joinPath(context.extensionUri, 'resources', 'icon.png')
+  );
+
+  panel.webview.html = buildThemeOfWeekHtml({
+    label,
+    mood,
+    colors,
+    syntax,
+    type,
+    icon: iconUri.toString(),
+  });
   panel.webview.onDidReceiveMessage(async message => {
     if (message.type === 'applyTheme' && message.label) {
       await vscode.workspace.getConfiguration('workbench').update(
