@@ -1,9 +1,5 @@
 # Forest Ash Theme (VS Code)
 
-[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-%23EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/sidkr222003)
-[![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-%23FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/nk2552003)
-[![vscode.dev](https://img.shields.io/badge/vscode.dev-Compatible-007ACC?logo=visualstudiocode&logoColor=white)](https://vscode.dev)
-
 A curated set of dark and light, eye-friendly themes for Visual Studio Code, inspired by forest ash textures and anime mood boards. Each palette is designed for readability across long coding sessions.
 
 ![Forest Ash Theme preview](https://raw.githubusercontent.com/sidkr222003/Forest-Ash-Theme/main/resources/demo.gif)
