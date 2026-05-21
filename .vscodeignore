@@ -9,6 +9,7 @@ node_modules/**
 **/.DS_Store
 **/.git/**
 **/.gitignore
+docs/
 
 # Dev dependencies not needed at runtime
 .vscodeignore
@@ -26,7 +27,6 @@ CHANGELOG.md
 # Exclude generated user themes but keep the folder placeholder
 themes/custom/**
 !themes/custom/.gitkeep
-resources/file.svg
-resources/dark.png
-resources/light.png
-resources/demo.gif
+resources/**
+!resources/icon.png
+!resources/icon.svg

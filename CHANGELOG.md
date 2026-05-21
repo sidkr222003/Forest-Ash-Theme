@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-05-18
+
+### High Impact Features
+
+- Added Focus Mode with Zen palette overrides and active-block dimming.
+- Added Circadian auto-switching between day/night themes with timezone support.
+- Added per-language accent overrides through `forestAsh.languageAccents`.
+- Added Italic Mode toggle and High Contrast Boost commands.
+- Added Theme Preview and Palette Inspector webviews.
+- Added custom theme import/export plus CSS palette export.
+- Added Theme of the Week welcome panel with weekly cadence.
+- Added vscode.dev compatibility metadata and sponsor badges.
+
+### Changed
+
+#### Updated the `themegenerator.js`
+  - All harmony math now lives in OKLCh (uniform hue spacing, no hue warp)
+  - Gamut clamping on every synthetic color (binary search on chroma)
+  - APCA contrast checking alongside WCAG for modern accessibility
+  - ColorDNA: 20+ perceptual properties derived from the base color
+  - Hue-family detection: 12-zone wheel (red/orange/amber/yellow/chartreuse/green/teal/cyan/blue/indigo/violet/magenta)
+  - Psychological temperature profile (warm/neutral/cool + exact K estimate)
+  - Semantic target locking: functions are always "action", types are always "identity", string are always "content" — mapped to color families that carry those meanings cross-culturally
+  - Chromatic adaptation for muted inputs: even near-grey inputs produce readable, harmonious themes rather than washed-out ones
+  - Light-theme specific chroma boosts and lightness calibration
+  - Terminal ANSI tinting refined with perceptual blending
+
 ## [1.3.6] - 2026-05-04
 
 This. uppdate only contains some bug fixes and doucmentation updates

@@ -2,7 +2,7 @@
   "name": "forest-ash-theme-vscode",
   "displayName": "Forest Ash Theme",
   "description": "21 themes, infinite possibilities, zero cost - A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes with dynamic custom theme generation.",
-  "version": "1.3.6",
+  "version": "1.4.0",
   "publisher": "NK2552003",
   "engines": {
     "vscode": "^1.70.0"
@@ -53,7 +53,18 @@
     "onCommand:forestAsh.applyCustomTheme",
     "onCommand:forestAsh.deleteCustomTheme",
     "onCommand:forestAsh.listCustomThemes",
-    "onCommand:forestAsh.quickThemePicker"
+    "onCommand:forestAsh.quickThemePicker",
+    "onCommand:forestAsh.toggleFocusMode",
+    "onCommand:forestAsh.toggleItalicMode",
+    "onCommand:forestAsh.toggleHighContrast",
+    "onCommand:forestAsh.previewThemes",
+    "onCommand:forestAsh.showPaletteInspector",
+    "onCommand:forestAsh.exportPaletteCss",
+    "onCommand:forestAsh.exportCustomTheme",
+    "onCommand:forestAsh.shareCustomTheme",
+    "onCommand:forestAsh.importCustomTheme",
+    "onCommand:forestAsh.applyCircadianTheme",
+    "onCommand:forestAsh.showThemeOfWeek"
   ],
   "contributes": {
     "commands": [
@@ -81,14 +92,217 @@
         "command": "forestAsh.quickThemePicker",
         "title": "Forest Ash: Quick Theme Picker",
         "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.toggleFocusMode",
+        "title": "Forest Ash: Toggle Focus Mode",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.toggleItalicMode",
+        "title": "Forest Ash: Toggle Italic Mode",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.toggleHighContrast",
+        "title": "Forest Ash: High Contrast Boost",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.previewThemes",
+        "title": "Forest Ash: Preview Themes",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.showPaletteInspector",
+        "title": "Forest Ash: Show Active Palette",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.exportPaletteCss",
+        "title": "Forest Ash: Export Palette as CSS",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.exportCustomTheme",
+        "title": "Forest Ash: Export Custom Theme",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.shareCustomTheme",
+        "title": "Forest Ash: Share Custom Theme",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.importCustomTheme",
+        "title": "Forest Ash: Import Custom Theme",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.applyCircadianTheme",
+        "title": "Forest Ash: Apply Circadian Theme Now",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.showThemeOfWeek",
+        "title": "Forest Ash: Theme of the Week",
+        "category": "Forest Ash"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "forestAshViews",
+          "title": "Forest Ash",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "forestAshViews": [
+        {
+          "type": "webview",
+          "id": "forestAsh.themePreviewView",
+          "name": "Theme Preview"
+        },
+        {
+          "type": "webview",
+          "id": "forestAsh.paletteView",
+          "name": "Active Palette"
+        },
+        {
+          "id": "forestAsh.customThemesView",
+          "name": "Custom Themes",
+          "type": "webview"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "forestAsh.context",
+        "label": "Forest Ash Theme"
+      },
+      {
+        "id": "forestAsh.customTheme.context",
+        "label": "Custom Theme"
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "command": "forestAsh.generateTheme",
+          "submenu": "forestAsh.context",
           "group": "forestAsh@1",
-          "when": "editorFocus && !isWeb"
+          "when": "editorFocus"
+        }
+      ],
+      "view/item/context": [
+        {
+          "submenu": "forestAsh.customTheme.context",
+          "group": "forestAsh@1",
+          "when": "view == forestAsh.customThemesView && viewItem == forestAshCustomTheme && !isWeb"
+        }
+      ],
+      "forestAsh.context": [
+        {
+          "command": "forestAsh.quickThemePicker",
+          "group": "1_core"
+        },
+        {
+          "command": "forestAsh.previewThemes",
+          "group": "1_core",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.showPaletteInspector",
+          "group": "1_core",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.toggleFocusMode",
+          "group": "2_modes",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.toggleItalicMode",
+          "group": "2_modes",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.toggleHighContrast",
+          "group": "2_modes",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.applyCircadianTheme",
+          "group": "3_automation",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.showThemeOfWeek",
+          "group": "3_automation",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.generateTheme",
+          "group": "4_custom",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.applyCustomTheme",
+          "group": "4_custom",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.listCustomThemes",
+          "group": "4_custom",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.exportCustomTheme",
+          "group": "4_custom",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.shareCustomTheme",
+          "group": "4_custom",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.importCustomTheme",
+          "group": "4_custom",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.deleteCustomTheme",
+          "group": "4_custom",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.exportPaletteCss",
+          "group": "5_export",
+          "when": "!isWeb"
+        }
+      ],
+      "forestAsh.customTheme.context": [
+        {
+          "command": "forestAsh.applyCustomTheme",
+          "group": "1_core",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.exportCustomTheme",
+          "group": "2_share",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.shareCustomTheme",
+          "group": "2_share",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.deleteCustomTheme",
+          "group": "3_manage",
+          "when": "!isWeb"
         }
       ],
       "commandPalette": [
@@ -110,6 +324,50 @@
         },
         {
           "command": "forestAsh.quickThemePicker"
+        },
+        {
+          "command": "forestAsh.toggleFocusMode",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.toggleItalicMode",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.toggleHighContrast",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.previewThemes",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.showPaletteInspector",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.exportPaletteCss",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.exportCustomTheme",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.shareCustomTheme",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.importCustomTheme",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.applyCircadianTheme",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.showThemeOfWeek",
+          "when": "!isWeb"
         }
       ]
     },
@@ -139,6 +397,74 @@
           "type": "boolean",
           "default": true,
           "description": "Show active custom theme color swatch in the status bar."
+        },
+        "forestAsh.focusMode.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Focus Mode dimming and Zen palette overrides."
+        },
+        "forestAsh.focusMode.dimOpacity": {
+          "type": "number",
+          "default": 0.35,
+          "minimum": 0.05,
+          "maximum": 0.9,
+          "description": "Opacity for dimmed code outside the active block in Focus Mode."
+        },
+        "forestAsh.italicMode.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Toggle italic font styles for Forest Ash token colors."
+        },
+        "forestAsh.highContrast.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Boost contrast ratios for Forest Ash themes."
+        },
+        "forestAsh.languageAccents": {
+          "type": "object",
+          "default": {},
+          "description": "Map language IDs to accent colors (hex) for per-language overrides."
+        },
+        "forestAsh.circadian.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically switch between day and night Forest Ash themes."
+        },
+        "forestAsh.circadian.dayTheme": {
+          "type": "string",
+          "default": "Forest Ash Yoru Paper Light",
+          "description": "Theme to use during the day in Circadian mode."
+        },
+        "forestAsh.circadian.nightTheme": {
+          "type": "string",
+          "default": "Forest Ash",
+          "description": "Theme to use at night in Circadian mode."
+        },
+        "forestAsh.circadian.dayStart": {
+          "type": "string",
+          "default": "07:00",
+          "description": "Day mode start time in 24h format (HH:mm)."
+        },
+        "forestAsh.circadian.nightStart": {
+          "type": "string",
+          "default": "19:00",
+          "description": "Night mode start time in 24h format (HH:mm)."
+        },
+        "forestAsh.circadian.timezone": {
+          "type": "string",
+          "default": "",
+          "description": "Time zone ID for Circadian mode. Leave blank to use system time zone."
+        },
+        "forestAsh.circadian.checkIntervalMinutes": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "How often (in minutes) to re-evaluate Circadian theme switching."
+        },
+        "forestAsh.themeOfWeek.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Theme of the Week webview on startup (once per week)."
         }
       }
     },
@@ -171,7 +497,7 @@
       {
         "label": "Forest Ash Aizome Dusk",
         "uiTheme": "vs-dark",
-        "path": "themes/forest-ash-aizome-dusk-color-theme.json"
+        "path": "themes/forest-ash-aizome-dusk-color.json"
       },
       {
         "label": "Forest Ash Ronin Lantern",
@@ -249,5 +575,10 @@
         "path": "themes/forest-ash-kage-washi-light-color-theme.json"
       }
     ]
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    }
   }
 }

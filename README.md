@@ -1,5 +1,9 @@
 # Forest Ash Theme (VS Code)
 
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-%23EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/sidkr222003)
+[![Ko-fi](https://img.shields.io/badge/Support-Ko--fi-%23FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/nk2552003)
+[![vscode.dev](https://img.shields.io/badge/vscode.dev-Compatible-007ACC?logo=visualstudiocode&logoColor=white)](https://vscode.dev)
+
 A curated set of dark and light, eye-friendly themes for Visual Studio Code, inspired by forest ash textures and anime mood boards. Each palette is designed for readability across long coding sessions.
 
 ![Forest Ash Theme preview](https://raw.githubusercontent.com/sidkr222003/Forest-Ash-Theme/main/resources/demo.gif)
@@ -83,6 +87,97 @@ Contrast and readability are preserved automatically for both dark and light var
 | `Forest Ash: Delete Custom Theme` | Permanently remove a generated theme |
 | `Forest Ash: List Saved Custom Themes` | View all custom themes in a webview panel with color swatches |
 | `Forest Ash: Quick Theme Picker` | Browse and apply all Forest Ash themes (built-in + custom) in one picker |
+| `Forest Ash: Toggle Focus Mode` | Dim everything except the active function or block |
+| `Forest Ash: Toggle Italic Mode` | Toggle italics for italic-capable token scopes |
+| `Forest Ash: High Contrast Boost` | Increase contrast across Forest Ash tokens |
+| `Forest Ash: Preview Themes` | Preview all 21 Forest Ash themes side-by-side |
+| `Forest Ash: Show Active Palette` | Inspect and copy every color token in the active theme |
+| `Forest Ash: Export Palette as CSS` | Export the active palette as CSS variables |
+| `Forest Ash: Export Custom Theme` | Export a saved custom theme to a JSON file |
+| `Forest Ash: Share Custom Theme` | Copy a custom theme into the community share folder and prepare a PR note |
+| `Forest Ash: Import Custom Theme` | Import a custom theme JSON file into Forest Ash |
+| `Forest Ash: Apply Circadian Theme Now` | Apply the correct day/night theme right now |
+| `Forest Ash: Theme of the Week` | Show the weekly theme spotlight panel |
+
+---
+
+## High Impact Features (1.4.0)
+
+### Focus Mode / Zen Palette
+
+Toggle a deep-focus mode that dims everything except the active function or block. It also softens CodeLens and inactive selection contrast for a calmer view.
+
+- Command: `Forest Ash: Toggle Focus Mode`
+- Settings: `forestAsh.focusMode.enabled`, `forestAsh.focusMode.dimOpacity`
+
+### Circadian Auto-Switching
+
+Automatically switch between a light day theme and warm night theme based on your time zone.
+
+- Command: `Forest Ash: Apply Circadian Theme Now`
+- Settings: `forestAsh.circadian.*`
+
+### Language-Specific Accent Overrides
+
+Pin a unique accent color per language via settings.
+
+```json
+"forestAsh.languageAccents": {
+	"python": "#B48EAD",
+	"go": "#8FBCBB",
+	"rust": "#D08770"
+}
+```
+
+### Italic / No-Italic Toggle
+
+Instantly toggle italics for token styles (useful with italic-friendly fonts).
+
+- Command: `Forest Ash: Toggle Italic Mode`
+- Setting: `forestAsh.italicMode.enabled`
+
+### High Contrast Boost
+
+Boosts contrast across all Forest Ash foregrounds and tokens to improve accessibility.
+
+- Command: `Forest Ash: High Contrast Boost`
+- Setting: `forestAsh.highContrast.enabled`
+
+### Export Palette as CSS Variables
+
+Export the active Forest Ash theme as a CSS file with `:root` variables.
+
+- Command: `Forest Ash: Export Palette as CSS`
+
+### Theme Preview Webview
+
+Preview all 21 Forest Ash themes side-by-side without switching.
+
+- Command: `Forest Ash: Preview Themes`
+
+### Palette Inspector
+
+Open a searchable grid of all color tokens in the active theme with copy-on-click.
+
+- Command: `Forest Ash: Show Active Palette`
+
+### Custom Theme Sharing (Import / Export / Share)
+
+Export a custom theme JSON for sharing, import one from the community, or copy a theme
+into the share folder with a PR note ready on your clipboard.
+
+- Commands: `Forest Ash: Export Custom Theme`, `Forest Ash: Share Custom Theme`, `Forest Ash: Import Custom Theme`
+- Community sharing: add JSON files to the share folder and open a PR.
+
+### Theme of the Week
+
+Once per week, Forest Ash surfaces a hand-picked theme with a short mood description,
+plus a live preview, palette swatches, and syntax token legend.
+
+- Command: `Forest Ash: Theme of the Week`
+- Setting: `forestAsh.themeOfWeek.enabled`
+
+> **Note:** Advanced commands (Focus Mode, preview, export, import) run in the desktop app. The web version focuses on theme browsing and switching.
 
 ### Custom Theme Persistence
 
@@ -127,7 +222,7 @@ Generated themes are saved inside the extension's `themes/custom/` folder and re
 | `name` | `forest-ash-theme` |
 | `displayName` | `Forest Ash Theme` |
 | `publisher` | `NK2552003` |
-| `version` | `1.3.0` |
+| `version` | `1.4.0` |
 | `engines.vscode` | `^1.70.0` |
 
 ---
@@ -149,11 +244,19 @@ forest-ash-theme/
 ├── extension.js              # extension entry point, all commands
 ├── package.json              # manifest, contributes.themes, commands
 ├── src/
-│   └── themeGenerator.js     # dynamic palette + theme JSON builder
+│   ├── extension.js          # desktop entry point, commands
+│   ├── extension-web.js      # web entry point
+│   ├── themeGenerator.js     # dynamic palette + theme JSON builder
+│   ├── themeReading.js       # shared theme JSON loader
+│   └── themeWebviews.js      # preview/palette webview helpers
 ├── themes/
 │   ├── *.json                # 21 hand-crafted static themes
 │   └── custom/               # runtime-generated user themes (git-ignored)
 │       └── .gitkeep
+├── docs/
+│   └── 1.4.0-features.md      # feature walkthrough for 1.4.0
+├── share/
+│   └── README.md              # community theme submissions
 ├── resources/
 │   ├── icon.png
 │   ├── Preview.png
