@@ -292,43 +292,390 @@ async function readAnyThemeJsonByLabel(context, themeLabel) {
 
 // ─── Tree view items ─────────────────────────────────────────────────────────
 
-class CustomThemeItem extends vscode.TreeItem {
-  constructor(meta) {
-    super(meta.label, vscode.TreeItemCollapsibleState.None);
-    this.meta = meta;
-    this.contextValue = 'forestAshCustomTheme';
-    this.description = `${meta.isDark ? 'Dark' : 'Light'} · ${meta.baseColor}`;
-    this.tooltip = `${meta.label}\n${meta.isDark ? 'Dark' : 'Light'} · ${meta.baseColor}`;
-    this.iconPath = new vscode.ThemeIcon(meta.isDark ? 'symbol-color' : 'color-mode');
-    this.command = {
-      command: 'forestAsh.applyCustomTheme',
-      title: 'Apply Custom Theme',
-      arguments: [meta],
-    };
+// ─── Custom Themes sidebar — webview with mini preview cards ─────────────────
+
+function buildSidebarCustomThemesHtml(customs, activeLabel) {
+  const esc = s => String(s).replace(/[&<>"']/g, m =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]
+  );
+
+  if (!customs || customs.length === 0) {
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<style>
+  body{margin:0;padding:0;font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:transparent;}
+  .empty{padding:32px 16px;text-align:center;}
+  .empty-icon{font-size:32px;margin-bottom:12px;opacity:.4;}
+  .empty-title{font-size:12px;font-weight:600;margin-bottom:6px;opacity:.8;}
+  .empty-sub{font-size:11px;opacity:.5;line-height:1.5;}
+  .gen-btn{
+    margin-top:14px;padding:7px 16px;border:none;border-radius:5px;
+    font-size:11px;font-weight:600;cursor:pointer;
+    background:var(--vscode-button-background);
+    color:var(--vscode-button-foreground);
   }
+  .gen-btn:hover{opacity:.85;}
+</style></head><body>
+<div class="empty">
+  <div class="empty-icon">🎨</div>
+  <div class="empty-title">No Custom Themes Yet</div>
+  <div class="empty-sub">Generate a theme from any base colour to see it here.</div>
+  <button class="gen-btn" onclick="gen()">Generate Theme</button>
+</div>
+<script>
+  const vscode = acquireVsCodeApi();
+  function gen() { vscode.postMessage({ type: 'generate' }); }
+</script>
+</body></html>`;
+  }
+
+  // Build a fake colour palette from the base hex for the mini mockup
+  function deriveColors(baseHex, isDark) {
+    // Simple deterministic palette derived purely from the hex string
+    // (no chroma-js available in the webview context)
+    const r = parseInt(baseHex.slice(1,3),16);
+    const g = parseInt(baseHex.slice(3,5),16);
+    const b = parseInt(baseHex.slice(5,7),16);
+    const lum = (0.299*r + 0.587*g + 0.114*b) / 255;
+    const bg   = isDark
+      ? `#${Math.max(0,r-160).toString(16).padStart(2,'0')}${Math.max(0,g-160).toString(16).padStart(2,'0')}${Math.max(0,b-140).toString(16).padStart(2,'0')}`
+      : '#f4f4f2';
+    const fg   = isDark ? '#d4d4d4' : '#333333';
+    return { bg, fg, accent: baseHex };
+  }
+
+  // Pick white or near-black text depending on background luminance
+  function contrastText(hexBg) {
+    try {
+      const r = parseInt(hexBg.slice(1,3),16);
+      const g = parseInt(hexBg.slice(3,5),16);
+      const b = parseInt(hexBg.slice(5,7),16);
+      return (0.299*r + 0.587*g + 0.114*b) > 140 ? '#111111' : '#ffffff';
+    } catch(_) { return '#ffffff'; }
+  }
+
+  const renderCard = meta => {
+    const isActive = meta.label === activeLabel;
+    const { bg, fg, accent } = deriveColors(meta.baseColor, meta.isDark);
+    const safeLabel = esc(meta.label);
+
+    // Text on accent — always contrast-safe
+    const accentText = contrastText(accent);
+
+    // Icon buttons: use a mid-grey that's always visible over any card bg
+    // Compute a neutral that's brighter than bg for dark themes, darker for light
+    const r = parseInt(bg.slice(1,3)||'28',16);
+    const g = parseInt(bg.slice(3,5)||'28',16);
+    const b = parseInt(bg.slice(5,7)||'28',16);
+    const bgLum = (0.299*r + 0.587*g + 0.114*b);
+    const iconBg   = bgLum < 128 ? '#5a5a5a' : '#c0c0c0';
+    const iconFg   = bgLum < 128 ? '#f0f0f0' : '#1a1a1a';
+
+    // 5 fake code lines using accent + fg variants
+    const lines = [
+      { color: accent,  w: 30 },
+      { color: fg,      w: 58 },
+      { color: accent,  w: 42 },
+      { color: fg,      w: 65 },
+      { color: accent,  w: 36 },
+    ].map(({ color, w }) =>
+      `<div class="cl"><span style="width:${w}%;background:${esc(color)};opacity:.82"></span></div>`
+    ).join('');
+
+    // 5-swatch row
+    const swatches = [accent, accent+'bb', accent+'88', fg+'88', fg+'44'].map(c =>
+      `<span class="sw" style="background:${esc(c)}"></span>`
+    ).join('');
+
+    const shortName = meta.label.replace(/^Forest Ash\s*/i, '') || meta.label;
+    const dateStr   = meta.generatedAt
+      ? new Date(meta.generatedAt).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' })
+      : '';
+
+    return `<div class="card${isActive ? ' active' : ''}"
+               data-label="${safeLabel}"
+               style="--bg:${esc(bg)};--fg:${esc(fg)};--ac:${esc(accent)};"
+               onclick="apply('${safeLabel}')">
+
+      <!-- mini editor mockup -->
+      <div class="preview" style="background:${esc(bg)}">
+        <div class="titlebar" style="background:${esc(bg)};border-bottom:1px solid ${esc(accent)}33;">
+          <span class="dot" style="background:#ff5f57"></span>
+          <span class="dot" style="background:#febc2e"></span>
+          <span class="dot" style="background:#28c840"></span>
+          <span class="tab-lbl" style="color:${esc(fg)};border-bottom:2px solid ${esc(accent)};">
+            ${esc(shortName)}
+          </span>
+        </div>
+        <div class="code-area">
+          <div class="gutter">
+            ${[1,2,3,4,5].map(n=>`<div class="ln" style="color:${esc(fg)}44">${n}</div>`).join('')}
+          </div>
+          <div class="lines">${lines}</div>
+        </div>
+        <div class="statusbar" style="background:${esc(accent)}cc;">
+          <span style="color:${esc(accentText)};font-size:8px;padding:0 6px;opacity:.9;">
+            ${meta.isDark ? 'Dark' : 'Light'} · ${esc(meta.baseColor.toUpperCase())}
+          </span>
+        </div>
+      </div>
+
+      <!-- card footer -->
+      <div class="footer" style="background:${esc(bg)}f0;">
+        <div class="name" style="color:${esc(fg)};">${esc(shortName)}</div>
+        <div class="swatches">${swatches}</div>
+        ${dateStr ? `<div class="date">${esc(dateStr)}</div>` : ''}
+        <div class="actions" onclick="event.stopPropagation()">
+          ${isActive
+            ? `<div class="badge active-badge" style="background:${esc(accent)};color:${esc(accentText)};">● Active</div>`
+            : `<button class="btn apply-btn"
+                       style="background:${esc(accent)};color:${esc(accentText)};"
+                       onclick="apply('${safeLabel}')">Apply</button>`
+          }
+          <button class="btn icon-btn" title="Export"
+                  style="background:${esc(iconBg)};color:${esc(iconFg)};"
+                  onclick="exportTheme('${safeLabel}')">↑</button>
+          <button class="btn icon-btn del-btn" title="Delete"
+                  style="background:${esc(iconBg)};color:${esc(iconFg)};"
+                  onclick="del('${safeLabel}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+  };
+
+  const cards = customs
+    .slice()
+    .sort((a,b) => a.label.localeCompare(b.label))
+    .map(renderCard)
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:var(--vscode-font-family,system-ui,sans-serif);
+    font-size:11px;
+    color:var(--vscode-foreground);
+    background:transparent;
+    padding-bottom:24px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ── sticky header ── */
+  .header{
+    position:sticky;top:0;z-index:20;
+    background:var(--vscode-sideBar-background,#252526);
+    border-bottom:1px solid var(--vscode-panel-border,#3c3c3c);
+    padding:10px 12px 8px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .header-left h2{font-size:12px;font-weight:600;}
+  .header-left .meta{font-size:10px;opacity:.5;margin-top:2px;}
+  .gen-header-btn{
+    padding:4px 10px;border:none;border-radius:4px;
+    font-size:10px;font-weight:600;cursor:pointer;
+    background:var(--vscode-button-background);
+    color:var(--vscode-button-foreground);
+    white-space:nowrap;
+  }
+  .gen-header-btn:hover{opacity:.85;}
+
+  /* ── search ── */
+  .search-wrap{padding:8px 10px 2px;}
+  .search-wrap input{
+    width:100%;padding:5px 8px;font-size:11px;
+    background:var(--vscode-input-background,#3c3c3c);
+    color:var(--vscode-input-foreground,#ccc);
+    border:1px solid var(--vscode-input-border,#555);
+    border-radius:3px;outline:none;
+  }
+  .search-wrap input:focus{border-color:var(--vscode-focusBorder,#007acc);}
+
+  /* ── grid ── */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+    gap:8px;
+    padding:8px 10px 4px;
+  }
+
+  /* ── card ── */
+  .card{
+    border-radius:8px;overflow:hidden;cursor:pointer;
+    border:1.5px solid var(--vscode-panel-border,#3c3c3c);
+    transition:transform .15s,box-shadow .15s,border-color .15s;
+    background:var(--vscode-sideBar-background);
+  }
+  .card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 6px 18px rgba(0,0,0,.5);
+    border-color:var(--ac,#555);
+  }
+  .card.active{
+    border-color:var(--ac,#007acc);
+    box-shadow:0 0 0 1px var(--ac,#007acc);
+  }
+  .card.hidden{display:none;}
+
+  /* ── mini editor mockup ── */
+  .preview{height:88px;display:flex;flex-direction:column;overflow:hidden;}
+  .titlebar{display:flex;align-items:center;gap:4px;padding:4px 6px;flex-shrink:0;}
+  .dot{width:7px;height:7px;border-radius:50%;}
+  .tab-lbl{font-size:8px;padding:0 5px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;opacity:.85;}
+  .code-area{display:flex;flex:1;overflow:hidden;padding:3px 0 2px;}
+  .gutter{display:flex;flex-direction:column;gap:2px;padding:0 5px;flex-shrink:0;}
+  .ln{font-size:7px;line-height:1;font-variant-numeric:tabular-nums;}
+  .lines{flex:1;display:flex;flex-direction:column;gap:3px;padding:0 4px;}
+  .cl{height:7px;border-radius:2px;overflow:hidden;}
+  .cl span{display:block;height:100%;border-radius:2px;}
+  .statusbar{height:10px;flex-shrink:0;display:flex;align-items:center;}
+
+  /* ── card footer ── */
+  .footer{
+    padding:6px 8px 7px;
+    display:flex;flex-direction:column;gap:4px;
+    border-top:1px solid rgba(255,255,255,.07);
+  }
+  .name{font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9;}
+  .swatches{display:flex;gap:3px;}
+  .sw{flex:1;height:5px;border-radius:2px;min-width:0;}
+  .date{font-size:9px;opacity:.4;}
+
+  /* ── action row ── */
+  .actions{display:flex;gap:4px;align-items:center;margin-top:1px;}
+  .btn{
+    border:none;border-radius:4px;cursor:pointer;
+    font-size:10px;font-weight:600;
+    transition:opacity .15s, background .15s;padding:4px 0;
+  }
+  .btn:hover{opacity:.85;}
+  .apply-btn{flex:1;}
+  .icon-btn{width:24px;flex-shrink:0;font-size:11px;}
+  .del-btn:hover{background:#c53030 !important;color:#fff !important;opacity:1;}
+  .active-badge{
+    flex:1;padding:3px 0;border-radius:4px;
+    font-size:10px;font-weight:600;text-align:center;
+  }
+
+  /* ── toast ── */
+  #toast{
+    position:fixed;bottom:12px;left:50%;transform:translateX(-50%) translateY(12px);
+    background:var(--vscode-badge-background,#4d4d4d);
+    color:var(--vscode-badge-foreground,#fff);
+    padding:4px 14px;border-radius:20px;
+    font-size:10px;pointer-events:none;
+    opacity:0;transition:opacity .2s,transform .2s;z-index:99;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h2>Custom Themes</h2>
+    <div class="meta">${customs.length} theme${customs.length !== 1 ? 's' : ''}</div>
+  </div>
+  <button class="gen-header-btn" onclick="gen()">+ Generate</button>
+</div>
+
+<div class="search-wrap">
+  <input id="q" type="text" placeholder="Search custom themes…" oninput="filter(this.value)">
+</div>
+
+<div class="grid">${cards}</div>
+
+<div id="toast"></div>
+
+<script>
+  const vscode = acquireVsCodeApi();
+
+  function apply(label) {
+    vscode.postMessage({ type: 'apply', label });
+    showToast('Applied: ' + label.replace(/^Forest Ash\\s*/i,''));
+  }
+  function del(label) {
+    vscode.postMessage({ type: 'delete', label });
+  }
+  function exportTheme(label) {
+    vscode.postMessage({ type: 'export', label });
+  }
+  function gen() {
+    vscode.postMessage({ type: 'generate' });
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  function filter(q) {
+    const lq = q.trim().toLowerCase();
+    document.querySelectorAll('.card').forEach(card => {
+      const match = !lq || card.dataset.label.toLowerCase().includes(lq);
+      card.classList.toggle('hidden', !match);
+    });
+  }
+</script>
+</body>
+</html>`;
 }
 
 class CustomThemesProvider {
   constructor(context) {
     this.context = context;
-    this._onDidChangeTreeData = new vscode.EventEmitter();
-    this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    this.view    = null;
+  }
+
+  resolveWebviewView(view) {
+    this.view = view;
+    view.webview.options = { enableScripts: true, retainContextWhenHidden: true };
+
+    // Set HTML immediately — prevents VS Code's "no data provider" placeholder
+    view.webview.html = buildSidebarCustomThemesHtml([], null);
+
+    view.webview.onDidReceiveMessage(async message => {
+      switch (message.type) {
+        case 'apply':
+          await vscode.workspace.getConfiguration('workbench').update(
+            'colorTheme', message.label, vscode.ConfigurationTarget.Global
+          );
+          paletteViewProvider?.refresh();
+          this.refresh();
+          break;
+        case 'delete':
+          await cmdDeleteCustomTheme(this.context, message.label);
+          break;
+        case 'export':
+          await cmdExportCustomTheme(this.context, message.label);
+          break;
+        case 'generate':
+          await cmdGenerateTheme(this.context);
+          break;
+      }
+    });
+
+    this._render();
+  }
+
+  _render() {
+    if (!this.view?.webview) return;
+    const customs     = getCustomThemes(this.context);
+    const activeLabel = getActiveThemeLabel();
+    this.view.webview.html = buildSidebarCustomThemesHtml(customs, activeLabel);
   }
 
   refresh() {
-    this._onDidChangeTreeData.fire();
-  }
-
-  getTreeItem(element) {
-    return element;
-  }
-
-  getChildren() {
-    const items = getCustomThemes(this.context)
-      .slice()
-      .sort((a, b) => a.label.localeCompare(b.label))
-      .map(meta => new CustomThemeItem(meta));
-    return items;
+    this._render();
   }
 }
 
@@ -2070,8 +2417,9 @@ function activate(context) {
   themePreviewProvider  = new ThemePreviewProvider(context);
 
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider(
-      'forestAsh.customThemesView', customThemesProvider),
+    vscode.window.registerWebviewViewProvider(
+      'forestAsh.customThemesView', customThemesProvider,
+      { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.window.registerWebviewViewProvider(
       'forestAsh.paletteView', paletteViewProvider,
       { webviewOptions: { retainContextWhenHidden: true } }),
@@ -2085,9 +2433,9 @@ function activate(context) {
     vscode.window.onDidChangeTextEditorSelection(() => scheduleFocusUpdate(context)),
     vscode.workspace.onDidChangeTextDocument(() => scheduleFocusUpdate(context)),
     vscode.window.onDidChangeActiveColorTheme(() => {
-      // Refresh both sidebar views when the theme changes
       paletteViewProvider?.refresh();
       themePreviewProvider?.refresh();
+      customThemesProvider?.refresh();   // updates active-badge on custom cards
     })
   );
 
@@ -2192,6 +2540,7 @@ function activate(context) {
         }
         paletteViewProvider?.refresh();
         themePreviewProvider?.refresh();
+        customThemesProvider?.refresh();
       }
     })
   );
