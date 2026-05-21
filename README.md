@@ -87,6 +87,17 @@ Contrast and readability are preserved automatically for both dark and light var
 | `Forest Ash: Delete Custom Theme` | Permanently remove a generated theme |
 | `Forest Ash: List Saved Custom Themes` | View all custom themes in a webview panel with color swatches |
 | `Forest Ash: Quick Theme Picker` | Browse and apply all Forest Ash themes (built-in + custom) in one picker |
+| `Forest Ash: Toggle Focus Mode` | Dim everything except the active function or block |
+| `Forest Ash: Toggle Italic Mode` | Toggle italics for italic-capable token scopes |
+| `Forest Ash: High Contrast Boost` | Increase contrast across Forest Ash tokens |
+| `Forest Ash: Preview Themes` | Preview all 21 Forest Ash themes side-by-side |
+| `Forest Ash: Show Active Palette` | Inspect and copy every color token in the active theme |
+| `Forest Ash: Export Palette as CSS` | Export the active palette as CSS variables |
+| `Forest Ash: Export Custom Theme` | Export a saved custom theme to a JSON file |
+| `Forest Ash: Share Custom Theme` | Copy a custom theme into the community share folder and prepare a PR note |
+| `Forest Ash: Import Custom Theme` | Import a custom theme JSON file into Forest Ash |
+| `Forest Ash: Apply Circadian Theme Now` | Apply the correct day/night theme right now |
+| `Forest Ash: Theme of the Week` | Show the weekly theme spotlight panel |
 
 ---
 
@@ -150,16 +161,18 @@ Open a searchable grid of all color tokens in the active theme with copy-on-clic
 
 - Command: `Forest Ash: Show Active Palette`
 
-### Custom Theme Sharing (Import / Export)
+### Custom Theme Sharing (Import / Export / Share)
 
-Export a custom theme JSON for sharing, or import one from the community.
+Export a custom theme JSON for sharing, import one from the community, or copy a theme
+into the share folder with a PR note ready on your clipboard.
 
-- Commands: `Forest Ash: Export Custom Theme`, `Forest Ash: Import Custom Theme`
+- Commands: `Forest Ash: Export Custom Theme`, `Forest Ash: Share Custom Theme`, `Forest Ash: Import Custom Theme`
 - Community sharing: add JSON files to the share folder and open a PR.
 
 ### Theme of the Week
 
-Once per week, Forest Ash surfaces a hand-picked theme with a short mood description.
+Once per week, Forest Ash surfaces a hand-picked theme with a short mood description,
+plus a live preview, palette swatches, and syntax token legend.
 
 - Command: `Forest Ash: Theme of the Week`
 - Setting: `forestAsh.themeOfWeek.enabled`
