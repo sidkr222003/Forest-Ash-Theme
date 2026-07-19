@@ -1,0 +1,29 @@
+# Forest Ash Theme — Warp Terminal
+# Generated: 2026-07-19
+# Usage: save as  ~/.warp/themes/forest-ash.yaml
+#        then in Warp: Settings → Appearance → Themes → forest-ash
+
+name: "Forest Ash Aizome Dusk"
+accent: "#8EACE2"
+background: "#10141B"
+foreground: "#D5DFEA"
+details: "darker"
+terminal_colors:
+  normal:
+    black:   "#17202B"
+    red:     "#C98695"
+    green:   "#90BEA7"
+    yellow:  "#C4B27E"
+    blue:    "#7EA6D8"
+    magenta: "#A693D4"
+    cyan:    "#80C1D1"
+    white:   "#D5DFEA"
+  bright:
+    black:   "#4F565E"
+    red:     "#D5A1AC"
+    green:   "#A8CCBA"
+    yellow:  "#D1C39A"
+    blue:    "#9ABAE1"
+    magenta: "#BAABDD"
+    cyan:    "#9CCFDB"
+    white:   "#D8E2EC"

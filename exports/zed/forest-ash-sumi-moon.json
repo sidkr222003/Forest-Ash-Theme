@@ -1,0 +1,169 @@
+// Forest Ash Theme — Zed Editor Theme
+// Generated: 2026-07-19
+// Usage: save as  ~/.config/zed/themes/forest-ash.json
+//        then in settings.json: "theme": "Forest Ash Sumi Moon"
+{
+  "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
+  "name": "Forest Ash Sumi Moon",
+  "author": "Forest Ash Theme",
+  "themes": [
+    {
+      "name": "Forest Ash Sumi Moon",
+      "appearance": "dark",
+      "style": {
+        "background": "#121217",
+        "editor.background": "#121217",
+        "editor.foreground": "#DCD9E3",
+        "editor.line_number": "#878194",
+        "editor.active_line_number": "#DCD9E3",
+        "editor.selection.background": "#3C365360",
+        "editor.gutter.background": "#15151C",
+        "editor.active_line.background": "#15151C40",
+        "editor.highlighted_line.background": "#15151C40",
+        "editor.invisible": "#878194",
+        "editor.document_highlight.read_background": "#B9A9DD20",
+        "editor.document_highlight.write_background": "#B9A9DD30",
+        "surface.background": "#15151C",
+        "panel.background": "#15151C",
+        "pane.focused_border": "#B9A9DD",
+        "toolbar.background": "#15151C",
+        "tab_bar.background": "#15151C",
+        "tab.active_background": "#121217",
+        "tab.inactive_background": "#15151C",
+        "scrollbar_thumb.background": "#B9A9DD40",
+        "scrollbar.track.background": "#15151C",
+        "scrollbar.track.border": "#36324A",
+        "status_bar.background": "#21202C",
+        "title_bar.background": "#15151C",
+        "title_bar.inactive_background": "#15151C",
+        "border": "#36324A",
+        "border.selected": "#B9A9DD",
+        "border.focused": "#B9A9DD",
+        "text": "#DCD9E3",
+        "text.muted": "#878194",
+        "text.placeholder": "#878194",
+        "text.accent": "#B9A9DD",
+        "text.disabled": "#878194",
+        "link_text.hover": "#9BBCE6",
+        "syntax": {
+          "comment": {
+            "color": "#878194",
+            "font_style": "italic"
+          },
+          "keyword": {
+            "color": "#C6AF7B",
+            "font_weight": 700
+          },
+          "operator": {
+            "color": "#DCD9E3"
+          },
+          "string": {
+            "color": "#AFA0D6"
+          },
+          "string.escape": {
+            "color": "#B9A9DD"
+          },
+          "number": {
+            "color": "#D2BEEA"
+          },
+          "boolean": {
+            "color": "#D2BEEA"
+          },
+          "null_literal": {
+            "color": "#D2BEEA"
+          },
+          "function": {
+            "color": "#9BBCE6"
+          },
+          "function.call": {
+            "color": "#9BBCE6"
+          },
+          "function.builtin": {
+            "color": "#9BBCE6"
+          },
+          "method": {
+            "color": "#9BBCE6"
+          },
+          "method.call": {
+            "color": "#9BBCE6"
+          },
+          "type": {
+            "color": "#9BC6B9"
+          },
+          "type.builtin": {
+            "color": "#9BC6B9"
+          },
+          "constructor": {
+            "color": "#9BC6B9"
+          },
+          "variable": {
+            "color": "#DCD9E3"
+          },
+          "variable.member": {
+            "color": "#DCD9E3"
+          },
+          "variable.parameter": {
+            "color": "#DCD9E3",
+            "font_style": "italic"
+          },
+          "attribute": {
+            "color": "#9BC6B9"
+          },
+          "tag": {
+            "color": "#C6AF7B"
+          },
+          "tag.attribute": {
+            "color": "#DCD9E3"
+          },
+          "embedded": {
+            "color": "#DCD9E3"
+          },
+          "markup.heading": {
+            "color": "#C6AF7B",
+            "font_weight": 700
+          },
+          "markup.list": {
+            "color": "#DCD9E3"
+          },
+          "markup.bold": {
+            "color": "#DCD9E3",
+            "font_weight": 700
+          },
+          "markup.italic": {
+            "color": "#DCD9E3",
+            "font_style": "italic"
+          },
+          "markup.link_text": {
+            "color": "#9BBCE6"
+          },
+          "markup.link_url": {
+            "color": "#AFA0D6"
+          },
+          "markup.raw": {
+            "color": "#AFA0D6"
+          }
+        },
+        "terminal.background": "#121217",
+        "terminal.foreground": "#DCD9E3",
+        "terminal.bright_foreground": "#DCD9E3",
+        "terminal.dim_foreground": "#878194",
+        "terminal.ansi.black": "#1D1D24",
+        "terminal.ansi.red": "#C7869E",
+        "terminal.ansi.green": "#9CC6AE",
+        "terminal.ansi.yellow": "#C6AF7B",
+        "terminal.ansi.blue": "#8CA3CC",
+        "terminal.ansi.magenta": "#B294D8",
+        "terminal.ansi.cyan": "#8DBFCD",
+        "terminal.ansi.white": "#DCD9E3",
+        "terminal.ansi.bright_black": "#535359",
+        "terminal.ansi.bright_red": "#D3A1B3",
+        "terminal.ansi.bright_green": "#B2D3C0",
+        "terminal.ansi.bright_yellow": "#D3C198",
+        "terminal.ansi.bright_blue": "#A5B7D7",
+        "terminal.ansi.bright_magenta": "#C3ACE1",
+        "terminal.ansi.bright_cyan": "#A6CDD8",
+        "terminal.ansi.bright_white": "#DFDCE5"
+      }
+    }
+  ]
+}

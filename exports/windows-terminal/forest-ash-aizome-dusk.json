@@ -1,0 +1,38 @@
+// Forest Ash Theme — Windows Terminal Color Scheme
+// Generated: 2026-07-19
+// Usage:
+//   1. Open Windows Terminal Settings (Ctrl+,)
+//   2. Click "Open JSON file" at bottom left
+//   3. Add the object below to the "schemes" array
+//   4. In your profile, set: "colorScheme": "Forest Ash Aizome Dusk"
+//
+// Fragment install: save as  fragment.json  in
+// %LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\ForestAsh\
+
+{
+  "schemes": [
+    {
+        "name": "Forest Ash Aizome Dusk",
+        "background": "#10141B",
+        "foreground": "#D5DFEA",
+        "cursorColor": "#8EACE2",
+        "selectionBackground": "#334969",
+        "black": "#17202B",
+        "red": "#C98695",
+        "green": "#90BEA7",
+        "yellow": "#C4B27E",
+        "blue": "#7EA6D8",
+        "purple": "#A693D4",
+        "cyan": "#80C1D1",
+        "white": "#D5DFEA",
+        "brightBlack": "#4F565E",
+        "brightRed": "#D5A1AC",
+        "brightGreen": "#A8CCBA",
+        "brightYellow": "#D1C39A",
+        "brightBlue": "#9ABAE1",
+        "brightPurple": "#BAABDD",
+        "brightCyan": "#9CCFDB",
+        "brightWhite": "#D8E2EC"
+    }
+  ]
+}

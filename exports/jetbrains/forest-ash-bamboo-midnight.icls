@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Forest Ash Theme — JetBrains Color Scheme
+  Generated: 2026-07-19
+  Import: Settings → Editor → Color Scheme → ⚙ → Import Scheme (.icls)
+  Supports: IntelliJ IDEA, Rider, CLion, PyCharm, WebStorm, GoLand, DataGrip, Android Studio
+-->
+<scheme name="Forest Ash Bamboo Midnight" version="142" parent_scheme="DARK">
+  <metaInfo>
+    <property name="created">2026-07-19</property>
+    <property name="ide">IntelliJ IDEA</property>
+    <property name="ideVersion">2024.1</property>
+    <property name="originalScheme">Forest Ash Bamboo Midnight</property>
+  </metaInfo>
+  <colors>
+    <option name="BACKGROUND" value="0f1512" />
+    <option name="FOREGROUND" value="d7e1d9" />
+    <option name="CARET_COLOR" value="8ecfae" />
+    <option name="CARET_ROW_COLOR" value="0f151220" />
+    <option name="SELECTION_BACKGROUND" value="2e5a46" />
+    <option name="SELECTION_FOREGROUND" value="d7e1d9" />
+    <option name="LINE_NUMBERS_COLOR" value="7a8d80" />
+    <option name="LINE_NUMBER_ON_CARET_ROW_COLOR" value="d7e1d9" />
+    <option name="GUTTER_BACKGROUND" value="131c18" />
+    <option name="INDENT_GUIDE" value="315042" />
+    <option name="SELECTED_INDENT_GUIDE" value="8ecfae80" />
+    <option name="WHITESPACES" value="7a8d8080" />
+    <option name="ADDED_LINES_COLOR" value="a2dcbf60" />
+    <option name="MODIFIED_LINES_COLOR" value="8ecfae60" />
+    <option name="DELETED_LINES_COLOR" value="86c3a160" />
+    <!-- Terminal ANSI -->
+      <option name="CONSOLE_BLACK" value="17221d" />
+      <option name="CONSOLE_RED" value="cc8a8a" />
+      <option name="CONSOLE_GREEN" value="8cc29f" />
+      <option name="CONSOLE_YELLOW" value="c4b77e" />
+      <option name="CONSOLE_BLUE" value="86a8ca" />
+      <option name="CONSOLE_MAGENTA" value="ab97cf" />
+      <option name="CONSOLE_CYAN" value="86c7c0" />
+      <option name="CONSOLE_WHITE" value="d7e1d9" />
+      <option name="CONSOLE_BRIGHT_BLACK" value="4f5753" />
+      <option name="CONSOLE_BRIGHT_RED" value="d7a4a4" />
+      <option name="CONSOLE_BRIGHT_GREEN" value="a5cfb4" />
+      <option name="CONSOLE_BRIGHT_YELLOW" value="d1c79a" />
+      <option name="CONSOLE_BRIGHT_BLUE" value="a1bbd6" />
+      <option name="CONSOLE_BRIGHT_MAGENTA" value="bdaeda" />
+      <option name="CONSOLE_BRIGHT_CYAN" value="a1d3ce" />
+      <option name="CONSOLE_BRIGHT_WHITE" value="dae3dc" />
+  </colors>
+  <attributes>
+    <attributes>
+      <option name="TEXT">
+        <value>
+          <option name="FOREGROUND" value="d7e1d9" />
+          <option name="BACKGROUND" value="0f1512" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="FOLDED_TEXT">
+        <value>
+          <option name="FOREGROUND" value="7a8d80" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="CARET_COLOR">
+        <value>
+          <option name="FOREGROUND" value="8ecfae" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="SELECTION">
+        <value>
+          <option name="BACKGROUND" value="2e5a46" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="LINE_NUMBERS_COLOR">
+        <value>
+          <option name="FOREGROUND" value="7a8d80" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="GUTTER_BACKGROUND">
+        <value>
+          <option name="BACKGROUND" value="131c18" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="TEARLINE_COLOR">
+        <value>
+          <option name="FOREGROUND" value="315042" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="RIGHT_MARGIN_COLOR">
+        <value>
+          <option name="FOREGROUND" value="315042" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="WHITESPACES">
+        <value>
+          <option name="FOREGROUND" value="7a8d80" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_KEYWORD">
+        <value>
+          <option name="FOREGROUND" value="c4b77e" />
+          <option name="FONT_TYPE" value="1" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_STRING">
+        <value>
+          <option name="FOREGROUND" value="86c3a1" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_NUMBER">
+        <value>
+          <option name="FOREGROUND" value="a2dcbf" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_FUNCTION_CALL">
+        <value>
+          <option name="FOREGROUND" value="bdefd3" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_INSTANCE_METHOD">
+        <value>
+          <option name="FOREGROUND" value="bdefd3" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_STATIC_FIELD">
+        <value>
+          <option name="FOREGROUND" value="d7e1d9" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_FIELD">
+        <value>
+          <option name="FOREGROUND" value="d7e1d9" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_LOCAL_VARIABLE">
+        <value>
+          <option name="FOREGROUND" value="d7e1d9" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_PARAMETER">
+        <value>
+          <option name="FOREGROUND" value="d7e1d9" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_CLASS_NAME">
+        <value>
+          <option name="FOREGROUND" value="9ddebc" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_INTERFACE_NAME">
+        <value>
+          <option name="FOREGROUND" value="9ddebc" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_ANNOTATION_NAME">
+        <value>
+          <option name="FOREGROUND" value="9ddebc" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_COMMENT">
+        <value>
+          <option name="FOREGROUND" value="7a8d80" />
+          <option name="FONT_TYPE" value="2" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_LINE_COMMENT">
+        <value>
+          <option name="FOREGROUND" value="7a8d80" />
+          <option name="FONT_TYPE" value="2" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_BLOCK_COMMENT">
+        <value>
+          <option name="FOREGROUND" value="7a8d80" />
+          <option name="FONT_TYPE" value="2" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_DOC_COMMENT">
+        <value>
+          <option name="FOREGROUND" value="7a8d80" />
+          <option name="FONT_TYPE" value="2" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_DOC_MARKUP">
+        <value>
+          <option name="FOREGROUND" value="8ecfae" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_TEMPLATE_LANGUAGE_COLOR">
+        <value>
+          <option name="FOREGROUND" value="8ecfae" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_METADATA">
+        <value>
+          <option name="FOREGROUND" value="9ddebc" />
+        </value>
+      </option>
+    </attributes>
+    <attributes>
+      <option name="DEFAULT_PREDEFINED_SYMBOL">
+        <value>
+          <option name="FOREGROUND" value="c4b77e" />
+        </value>
+      </option>
+    </attributes>
+  </attributes>
+</scheme>

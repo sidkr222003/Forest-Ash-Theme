@@ -1,0 +1,29 @@
+# Forest Ash Theme — Warp Terminal
+# Generated: 2026-07-19
+# Usage: save as  ~/.warp/themes/forest-ash.yaml
+#        then in Warp: Settings → Appearance → Themes → forest-ash
+
+name: "Forest Ash Kage Washi"
+accent: "#A6C0B6"
+background: "#121515"
+foreground: "#DBDFDC"
+details: "darker"
+terminal_colors:
+  normal:
+    black:   "#1A2221"
+    red:     "#CC9090"
+    green:   "#93C0AA"
+    yellow:  "#C7B781"
+    blue:    "#8FA8CC"
+    magenta: "#B29FD3"
+    cyan:    "#8FC8C2"
+    white:   "#DBDFDC"
+  bright:
+    black:   "#515756"
+    red:     "#D7A8A8"
+    green:   "#ABCEBD"
+    yellow:  "#D3C79D"
+    blue:    "#A8BBD7"
+    magenta: "#C3B4DD"
+    cyan:    "#A8D4CF"
+    white:   "#DEE2DF"

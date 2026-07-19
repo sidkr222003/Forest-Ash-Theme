@@ -1,0 +1,29 @@
+# Forest Ash Theme — Warp Terminal
+# Generated: 2026-07-19
+# Usage: save as  ~/.warp/themes/forest-ash.yaml
+#        then in Warp: Settings → Appearance → Themes → forest-ash
+
+name: "Forest Ash Bamboo Midnight"
+accent: "#8ECFAE"
+background: "#0F1512"
+foreground: "#D7E1D9"
+details: "darker"
+terminal_colors:
+  normal:
+    black:   "#17221D"
+    red:     "#CC8A8A"
+    green:   "#8CC29F"
+    yellow:  "#C4B77E"
+    blue:    "#86A8CA"
+    magenta: "#AB97CF"
+    cyan:    "#86C7C0"
+    white:   "#D7E1D9"
+  bright:
+    black:   "#4F5753"
+    red:     "#D7A4A4"
+    green:   "#A5CFB4"
+    yellow:  "#D1C79A"
+    blue:    "#A1BBD6"
+    magenta: "#BDAEDA"
+    cyan:    "#A1D3CE"
+    white:   "#DAE3DC"

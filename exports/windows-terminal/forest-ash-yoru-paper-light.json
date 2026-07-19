@@ -1,0 +1,38 @@
+// Forest Ash Theme — Windows Terminal Color Scheme
+// Generated: 2026-07-19
+// Usage:
+//   1. Open Windows Terminal Settings (Ctrl+,)
+//   2. Click "Open JSON file" at bottom left
+//   3. Add the object below to the "schemes" array
+//   4. In your profile, set: "colorScheme": "Forest Ash Yoru Paper Light"
+//
+// Fragment install: save as  fragment.json  in
+// %LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\ForestAsh\
+
+{
+  "schemes": [
+    {
+        "name": "Forest Ash Yoru Paper Light",
+        "background": "#F6F7F8",
+        "foreground": "#313F31",
+        "cursorColor": "#313F31",
+        "selectionBackground": "#C1E1DA",
+        "black": "#3A4044",
+        "red": "#A63A3A",
+        "green": "#397F5B",
+        "yellow": "#A38433",
+        "blue": "#3C759A",
+        "purple": "#77469B",
+        "cyan": "#418B7E",
+        "white": "#E9EDF1",
+        "brightBlack": "#60686E",
+        "brightRed": "#C94040",
+        "brightGreen": "#41AA74",
+        "brightYellow": "#CCA233",
+        "brightBlue": "#4190C3",
+        "brightPurple": "#9255BE",
+        "brightCyan": "#47B8A4",
+        "brightWhite": "#F7FAFD"
+    }
+  ]
+}

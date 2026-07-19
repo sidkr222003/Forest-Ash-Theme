@@ -1,0 +1,29 @@
+# Forest Ash Theme — Warp Terminal
+# Generated: 2026-07-19
+# Usage: save as  ~/.warp/themes/forest-ash.yaml
+#        then in Warp: Settings → Appearance → Themes → forest-ash
+
+name: "Forest Ash Nebula Manga"
+accent: "#A9B0ED"
+background: "#11131A"
+foreground: "#DADDED"
+details: "darker"
+terminal_colors:
+  normal:
+    black:   "#171E2C"
+    red:     "#CA8AA4"
+    green:   "#90C4AA"
+    yellow:  "#C7B97F"
+    blue:    "#8EA9E1"
+    magenta: "#B79CDE"
+    cyan:    "#8CC5D8"
+    white:   "#DADDED"
+  bright:
+    black:   "#4F545F"
+    red:     "#D6A4B8"
+    green:   "#A8D1BD"
+    yellow:  "#D3C89B"
+    blue:    "#A7BCE8"
+    magenta: "#C7B2E5"
+    cyan:    "#A5D2E1"
+    white:   "#DDE0EE"

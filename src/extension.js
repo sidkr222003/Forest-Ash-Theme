@@ -14,6 +14,7 @@ const {
   buildPaletteInspectorHtml,
   buildThemeOfWeekHtml,
 } = require('./themeWebviews');
+const { buildPalette, EXPORT_TARGETS } = require('./themeExporter');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,10 @@ let circadianTimer = null;
 let paletteViewProvider    = null;
 let themePreviewProvider   = null;
 let customThemesProvider   = null;
+let statusBarItem          = null;
+
+// Simple in-memory lock to prevent concurrent package.json writes
+let pkgWriteLock = Promise.resolve();
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
 
@@ -64,23 +69,27 @@ function themeFileRelPath(fileName) {
 // ─── package.json patching ────────────────────────────────────────────────────
 
 function patchPackageJson(meta) {
-  const pkgPath = path.join(extRoot(), 'package.json');
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  // Serialise all package.json writes to prevent concurrent corruption
+  pkgWriteLock = pkgWriteLock.then(() => {
+    const pkgPath = path.join(extRoot(), 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 
-  if (!pkg.contributes)        pkg.contributes = {};
-  if (!pkg.contributes.themes) pkg.contributes.themes = [];
+    if (!pkg.contributes)        pkg.contributes = {};
+    if (!pkg.contributes.themes) pkg.contributes.themes = [];
 
-  pkg.contributes.themes = pkg.contributes.themes.filter(
-    t => t.label !== meta.label
-  );
+    pkg.contributes.themes = pkg.contributes.themes.filter(
+      t => t.label !== meta.label
+    );
 
-  pkg.contributes.themes.push({
-    label:  meta.label,
-    uiTheme: meta.isDark ? 'vs-dark' : 'vs',
-    path:   themeFileRelPath(meta.fileName),
-  });
+    pkg.contributes.themes.push({
+      label:  meta.label,
+      uiTheme: meta.isDark ? 'vs-dark' : 'vs',
+      path:   themeFileRelPath(meta.fileName),
+    });
 
-  fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+  }).catch(err => console.error('[ForestAsh] patchPackageJson error:', err.message));
+  return pkgWriteLock;
 }
 
 function unpatchPackageJson(label) {
@@ -1426,12 +1435,12 @@ async function cmdQuickThemePicker(context) {
   const allItems = [
     ...STATIC_THEMES.map(t => ({
       label:       t.label,
-      description: t.description,
-      detail:      'Built-in',
+      description: t.description === 'vs-dark' ? '$(moon) Dark' : '$(sun) Light',
+      detail:      THEME_MOODS[t.label] ? `$(quote) ${THEME_MOODS[t.label]}` : 'Built-in',
     })),
     ...customs.map(t => ({
       label:       t.label,
-      description: t.isDark ? 'vs-dark' : 'vs',
+      description: t.isDark ? '$(moon) Dark' : '$(sun) Light',
       detail:      `$(star-full) Custom · ${t.baseColor}`,
     })),
   ];
@@ -1536,7 +1545,7 @@ async function updateFocusDecorations(context) {
 
 function scheduleFocusUpdate(context) {
   if (focusUpdateTimer) clearTimeout(focusUpdateTimer);
-  focusUpdateTimer = setTimeout(() => updateFocusDecorations(context), 120);
+  focusUpdateTimer = setTimeout(() => updateFocusDecorations(context), 80);
 }
 
 async function applyFocusModeColors(context) {
@@ -2397,6 +2406,420 @@ async function cmdImportCustomTheme(context) {
   }
 }
 
+// ─── Status Bar Item ──────────────────────────────────────────────────────────
+
+function createOrUpdateStatusBar(context) {
+  const config = vscode.workspace.getConfiguration('forestAsh');
+  const show = config.get('showSwatchInStatusBar', true);
+
+  if (!show) {
+    statusBarItem?.hide();
+    return;
+  }
+
+  if (!statusBarItem) {
+    statusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Right,
+      99
+    );
+    statusBarItem.command = 'forestAsh.quickThemePicker';
+    context.subscriptions.push(statusBarItem);
+  }
+
+  const label = getActiveThemeLabel() || '';
+  const isForestAsh = label.toLowerCase().includes('forest ash');
+
+  if (!isForestAsh) {
+    statusBarItem.hide();
+    return;
+  }
+
+  const shortName = label.replace(/^Forest Ash\s*/i, '') || 'Default';
+  statusBarItem.text = `$(symbol-color) ${shortName}`;
+  statusBarItem.tooltip = `Forest Ash: ${label}\nClick to switch themes`;
+  statusBarItem.show();
+}
+
+// ─── Export Theme for External Tool ──────────────────────────────────────────
+
+async function cmdExportForTool(context) {
+  const activeLabel = getActiveThemeLabel();
+  const themeJson = await readAnyThemeJsonByLabel(context, activeLabel);
+
+  if (!themeJson?.colors) {
+    vscode.window.showWarningMessage(
+      'Could not read the active theme palette. Switch to a Forest Ash theme first, or use any theme — colors will be derived from the available data.'
+    );
+    return;
+  }
+
+  // Let user also pick a custom theme as source
+  const customs = getCustomThemes(context);
+  const sourceItems = [
+    { label: `$(symbol-color) Active theme: ${activeLabel}`, id: 'active', themeJson, meta: null },
+    ...customs.map(t => ({
+      label: `$(star-full) ${t.label}`,
+      description: `Custom · ${t.isDark ? 'dark' : 'light'} · ${t.baseColor}`,
+      id: 'custom',
+      meta: t,
+      themeJson: null,
+    })),
+  ];
+
+  const sourcePick = sourceItems.length > 1
+    ? await vscode.window.showQuickPick(sourceItems, {
+        title: 'Forest Ash: Export for External Tool — Step 1 of 3',
+        placeHolder: 'Choose which theme to export',
+      })
+    : sourceItems[0];
+
+  if (!sourcePick) return;
+
+  let sourceJson = sourcePick.themeJson;
+  let sourceMeta = sourcePick.meta;
+  if (!sourceJson && sourceMeta) {
+    sourceJson = await readAnyThemeJsonByLabel(context, sourceMeta.label);
+  }
+  if (!sourceJson) {
+    vscode.window.showErrorMessage('Could not load theme data.');
+    return;
+  }
+
+  // Build normalised palette
+  const palette = buildPalette(sourceJson, sourceMeta || { label: activeLabel, isDark: sourceJson.type !== 'light' });
+
+  // Pick target tool
+  const toolPick = await vscode.window.showQuickPick(
+    EXPORT_TARGETS.map(t => ({
+      label:       t.label,
+      description: t.description,
+      detail:      t.detail,
+      target:      t,
+    })),
+    {
+      title: 'Forest Ash: Export for External Tool — Step 2 of 3',
+      placeHolder: 'Select the target editor or terminal',
+      matchOnDescription: true,
+    }
+  );
+  if (!toolPick) return;
+
+  const target = toolPick.target;
+  const content = target.export(palette);
+
+  // Save file
+  const safeName = palette.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const defaultName = `forest-ash-${safeName}${target.ext}`;
+  const defaultUri = vscode.Uri.file(path.join(os.homedir(), defaultName));
+
+  const saveUri = await vscode.window.showSaveDialog({
+    defaultUri,
+    filters: { [target.filterName]: [target.ext.replace('.', '')] },
+    title: `Forest Ash: Export for ${target.id} — Step 3 of 3`,
+  });
+  if (!saveUri) return;
+
+  await vscode.workspace.fs.writeFile(saveUri, Buffer.from(content, 'utf8'));
+
+  const action = await vscode.window.showInformationMessage(
+    `Exported ${defaultName}  ·  ${target.detail}`,
+    'Reveal in Finder',
+    'Copy Install Path'
+  );
+  if (action === 'Reveal in Finder') {
+    await vscode.commands.executeCommand('revealFileInOS', saveUri);
+  }
+  if (action === 'Copy Install Path') {
+    await vscode.env.clipboard.writeText(saveUri.fsPath);
+    vscode.window.showInformationMessage('Path copied to clipboard.');
+  }
+}
+
+// ─── Export All Themes for External Tool ─────────────────────────────────────
+
+async function cmdExportAllThemes(context) {
+  const toolPick = await vscode.window.showQuickPick(
+    EXPORT_TARGETS.map(t => ({
+      label:       t.label,
+      description: t.description,
+      detail:      t.detail,
+      target:      t,
+    })),
+    {
+      title:       'Forest Ash: Export All Themes for Tool — Step 1 of 2',
+      placeHolder: 'Select the target editor or terminal',
+      matchOnDescription: true,
+    }
+  );
+  if (!toolPick) return;
+
+  const target = toolPick.target;
+
+  // Pick a destination directory
+  const folderUris = await vscode.window.showOpenDialog({
+    canSelectFiles: false,
+    canSelectFolders: true,
+    canSelectMany: false,
+    openLabel: 'Export All Themes Here',
+    title: 'Forest Ash: Choose export folder — Step 2 of 2',
+  });
+  if (!folderUris?.length) return;
+
+  const destDir = folderUris[0].fsPath;
+
+  let exported = 0;
+  let failed = 0;
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: `Forest Ash: Exporting all themes for ${target.id}…`,
+      cancellable: false,
+    },
+    async (progress) => {
+      for (const theme of STATIC_THEMES) {
+        try {
+          const themeJson = await readAnyThemeJsonByLabel(context, theme.label);
+          if (!themeJson) { failed++; continue; }
+          const meta = {
+            label: theme.label,
+            isDark: theme.description === 'vs-dark',
+          };
+          const palette = buildPalette(themeJson, meta);
+          const content = target.export(palette);
+          const safeName = theme.label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          const fileName = `${safeName}${target.ext}`;
+          fs.writeFileSync(path.join(destDir, fileName), content, 'utf8');
+          exported++;
+          progress.report({ message: `${theme.label}`, increment: 100 / STATIC_THEMES.length });
+        } catch (err) {
+          console.error(`[ForestAsh] exportAllThemes failed for ${theme.label}:`, err.message);
+          failed++;
+        }
+      }
+    }
+  );
+
+  const action = await vscode.window.showInformationMessage(
+    `Exported ${exported} theme${exported !== 1 ? 's' : ''}${failed ? ` (${failed} failed)` : ''} to ${destDir}`,
+    'Open Folder'
+  );
+  if (action === 'Open Folder') {
+    await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(destDir));
+  }
+}
+
+// ─── Rename Custom Theme ──────────────────────────────────────────────────────
+
+async function cmdRenameCustomTheme(context) {
+  const customs = getCustomThemes(context);
+  if (!customs.length) {
+    vscode.window.showInformationMessage('No custom themes to rename.');
+    return;
+  }
+
+  const picked = await vscode.window.showQuickPick(
+    customs.map(t => ({
+      label:       t.label,
+      description: `${t.isDark ? '$(moon) Dark' : '$(sun) Light'} · ${t.baseColor}`,
+      meta:        t,
+    })),
+    { title: 'Forest Ash: Rename Custom Theme — Step 1 of 2', placeHolder: 'Choose a theme to rename' }
+  );
+  if (!picked) return;
+
+  const newName = await vscode.window.showInputBox({
+    title:   'Forest Ash: Rename Custom Theme — Step 2 of 2',
+    prompt:  'Enter a new name',
+    value:   picked.meta.label,
+    validateInput(val) {
+      if (!val?.trim()) return 'Name required';
+      if (val.trim() === picked.meta.label) return 'Name is the same';
+      if (customs.some(t => t.label === val.trim())) return 'A theme with this name already exists';
+      return null;
+    },
+  });
+  if (!newName) return;
+
+  const oldMeta = picked.meta;
+  const newMeta = { ...oldMeta, label: newName.trim() };
+
+  // Update theme JSON name field
+  const filePath = themeFilePath(oldMeta.fileName);
+  if (fs.existsSync(filePath)) {
+    try {
+      const themeJson = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      themeJson.name = newName.trim();
+      fs.writeFileSync(filePath, JSON.stringify(themeJson, null, 2), 'utf8');
+    } catch (_) {}
+  }
+
+  // Update package.json
+  unpatchPackageJson(oldMeta.label);
+  patchPackageJson(newMeta);
+
+  // Update state
+  const idx = customs.findIndex(t => t.label === oldMeta.label);
+  if (idx > -1) customs.splice(idx, 1, newMeta);
+  await context.globalState.update(CUSTOM_STATE_KEY, customs);
+  customThemesProvider?.refresh();
+
+  const action = await vscode.window.showInformationMessage(
+    `Renamed to "${newMeta.label}". Reload to update the theme picker.`,
+    'Reload Now', 'Later'
+  );
+  if (action === 'Reload Now') {
+    await vscode.commands.executeCommand('workbench.action.reloadWindow');
+  }
+}
+
+// ─── Duplicate Custom Theme ───────────────────────────────────────────────────
+
+async function cmdDuplicateCustomTheme(context) {
+  const customs = getCustomThemes(context);
+  if (!customs.length) {
+    vscode.window.showInformationMessage('No custom themes to duplicate.');
+    return;
+  }
+
+  const picked = await vscode.window.showQuickPick(
+    customs.map(t => ({
+      label:       t.label,
+      description: `${t.isDark ? '$(moon) Dark' : '$(sun) Light'} · ${t.baseColor}`,
+      meta:        t,
+    })),
+    { title: 'Forest Ash: Duplicate Custom Theme — Step 1 of 2', placeHolder: 'Choose a theme to duplicate' }
+  );
+  if (!picked) return;
+
+  const srcMeta = picked.meta;
+  const defaultName = `${srcMeta.label} Copy`;
+  const newName = await vscode.window.showInputBox({
+    title:   'Forest Ash: Duplicate Custom Theme — Step 2 of 2',
+    prompt:  'Name for the new copy',
+    value:   defaultName,
+    validateInput(val) {
+      if (!val?.trim()) return 'Name required';
+      if (customs.some(t => t.label === val.trim())) return 'A theme with this name already exists';
+      return null;
+    },
+  });
+  if (!newName) return;
+
+  const label    = newName.trim();
+  const safeId   = toKebab(label);
+  const timestamp = Date.now();
+  const fileName  = `custom-${timestamp}-${safeId}.json`;
+  const srcPath   = themeFilePath(srcMeta.fileName);
+  const dstPath   = themeFilePath(fileName);
+
+  if (!fs.existsSync(srcPath)) {
+    vscode.window.showErrorMessage('Source theme file not found.');
+    return;
+  }
+
+  // Copy and rename
+  try {
+    const themeJson = JSON.parse(fs.readFileSync(srcPath, 'utf8'));
+    themeJson.name = label;
+    fs.writeFileSync(dstPath, JSON.stringify(themeJson, null, 2), 'utf8');
+  } catch (err) {
+    vscode.window.showErrorMessage(`Duplication failed: ${err.message}`);
+    return;
+  }
+
+  const newMeta = { ...srcMeta, label, safeId, fileName, generatedAt: timestamp };
+  patchPackageJson(newMeta);
+  await saveCustomMeta(context, newMeta);
+  customThemesProvider?.refresh();
+
+  const action = await vscode.window.showInformationMessage(
+    `Duplicated as "${label}". Reload to make it available in the theme picker.`,
+    'Reload Now', 'Later'
+  );
+  if (action === 'Reload Now') {
+    await vscode.commands.executeCommand('workbench.action.reloadWindow');
+  }
+}
+
+// ─── Random Theme ─────────────────────────────────────────────────────────────
+
+async function cmdRandomTheme(context) {
+  const customs  = getCustomThemes(context);
+  const current  = getActiveThemeLabel();
+
+  const all = [
+    ...STATIC_THEMES.map(t => t.label),
+    ...customs.map(t => t.label),
+  ].filter(label => label !== current);
+
+  if (!all.length) {
+    vscode.window.showInformationMessage('Only one theme installed — nothing to switch to!');
+    return;
+  }
+
+  const chosen = all[Math.floor(Math.random() * all.length)];
+  await vscode.workspace.getConfiguration('workbench').update(
+    'colorTheme', chosen, vscode.ConfigurationTarget.Global
+  );
+  const mood = THEME_MOODS[chosen];
+  vscode.window.showInformationMessage(
+    mood ? `🎲 ${chosen} — ${mood}` : `🎲 Applied: ${chosen}`
+  );
+}
+
+// ─── Export Palette as SCSS ────────────────────────────────────────────────────
+
+async function cmdExportPaletteScss(context) {
+  const themeLabel = getActiveThemeLabel();
+  const theme = await readAnyThemeJsonByLabel(context, themeLabel);
+  if (!theme?.colors) {
+    vscode.window.showInformationMessage('Could not read palette for the active theme.');
+    return;
+  }
+
+  const vars = Object.entries(theme.colors).map(([key, value]) => {
+    const name = `$fa-${toKebab(key)}`;
+    return `${name}: ${value};`;
+  });
+
+  const syntax = extractSyntaxColors(theme);
+  Object.entries(syntax).forEach(([key, value]) => {
+    vars.push(`$fa-syntax-${toKebab(key)}: ${value};`);
+  });
+
+  const scss = [
+    `// Forest Ash Palette: ${themeLabel}`,
+    `// Generated: ${new Date().toISOString().slice(0, 10)}`,
+    `//`,
+    `// Usage: @use 'forest-ash' as fa;`,
+    `//        color: fa.$fa-editor-foreground;`,
+    '',
+    ...vars.sort(),
+    '',
+    `// CSS custom properties map`,
+    ':root {',
+    ...vars.sort().map(v => {
+      const [decl] = v.split(': ');
+      const cssVar = decl.replace(/^\$/, '--');
+      return `  ${cssVar}: #{${decl}};`;
+    }),
+    '}',
+    '',
+  ].join('\n');
+
+  const defaultName = `forest-ash-${toKebab(themeLabel)}.scss`;
+  const defaultUri = vscode.Uri.file(path.join(os.homedir(), defaultName));
+  const saveUri = await vscode.window.showSaveDialog({
+    defaultUri,
+    filters: { 'SCSS': ['scss'] },
+  });
+
+  if (!saveUri) return;
+  await vscode.workspace.fs.writeFile(saveUri, Buffer.from(scss, 'utf8'));
+  vscode.window.showInformationMessage(`Exported ${defaultName}`);
+}
+
 // ─── activate / deactivate ────────────────────────────────────────────────────
 
 function activate(context) {
@@ -2495,9 +2918,25 @@ function activate(context) {
       'forestAsh.applyCircadianTheme', () => cmdApplyCircadianTheme(context)),
     vscode.commands.registerCommand(
       'forestAsh.showThemeOfWeek', () => cmdShowThemeOfWeek(context, true)),
+    // ── v1.5.0 new commands ──
+    vscode.commands.registerCommand(
+      'forestAsh.exportForTool',        () => cmdExportForTool(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.exportAllThemes',      () => cmdExportAllThemes(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.renameCustomTheme',    () => cmdRenameCustomTheme(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.duplicateCustomTheme', () => cmdDuplicateCustomTheme(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.randomTheme',          () => cmdRandomTheme(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.exportPaletteScss',    () => cmdExportPaletteScss(context)),
   );
 
   applyLanguageAccents(context).catch(() => undefined);
+
+  // ── Status bar item (fixes missing implementation of showSwatchInStatusBar) ──
+  createOrUpdateStatusBar(context);
 
   const config = vscode.workspace.getConfiguration('forestAsh');
   if (config.get('italicMode.enabled', false)) {
@@ -2549,7 +2988,12 @@ function activate(context) {
         startCircadianScheduler(context);
       }
 
+      if (event.affectsConfiguration('forestAsh.showSwatchInStatusBar')) {
+        createOrUpdateStatusBar(context);
+      }
+
       if (event.affectsConfiguration('workbench.colorTheme')) {
+        createOrUpdateStatusBar(context);
         const updated = vscode.workspace.getConfiguration('forestAsh');
         if (updated.get('focusMode.enabled', false)) {
           await applyFocusModeColors(context);

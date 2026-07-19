@@ -1,0 +1,29 @@
+# Forest Ash Theme — Warp Terminal
+# Generated: 2026-07-19
+# Usage: save as  ~/.warp/themes/forest-ash.yaml
+#        then in Warp: Settings → Appearance → Themes → forest-ash
+
+name: "Forest Ash Shoji Night Light"
+accent: "#2E3C42"
+background: "#F6F8F9"
+foreground: "#2E3C42"
+details: "lighter"
+terminal_colors:
+  normal:
+    black:   "#3CF200"
+    red:     "#16FE02"
+    green:   "#397F61"
+    yellow:  "#A38C33"
+    blue:    "#3985CF"
+    magenta: "#5F469B"
+    cyan:    "#41818B"
+    white:   "#7154FD"
+  bright:
+    black:   "#7E27CA"
+    red:     "#8C97FF"
+    green:   "#41AA7D"
+    yellow:  "#CCAD33"
+    blue:    "#550A95"
+    magenta: "#A75FD6"
+    cyan:    "#47A8B8"
+    white:   "#1BC290"
