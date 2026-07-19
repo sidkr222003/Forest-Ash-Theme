@@ -1,0 +1,38 @@
+// Forest Ash Theme — Windows Terminal Color Scheme
+// Generated: 2026-07-19
+// Usage:
+//   1. Open Windows Terminal Settings (Ctrl+,)
+//   2. Click "Open JSON file" at bottom left
+//   3. Add the object below to the "schemes" array
+//   4. In your profile, set: "colorScheme": "Forest Ash Ronin Lantern Light"
+//
+// Fragment install: save as  fragment.json  in
+// %LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\ForestAsh\
+
+{
+  "schemes": [
+    {
+        "name": "Forest Ash Ronin Lantern Light",
+        "background": "#F8F7F6",
+        "foreground": "#46372A",
+        "cursorColor": "#46372A",
+        "selectionBackground": "#E6CFBC",
+        "black": "#3A4044",
+        "red": "#A6513A",
+        "green": "#5B7F39",
+        "yellow": "#A37D33",
+        "blue": "#3C689A",
+        "purple": "#78469B",
+        "cyan": "#418B83",
+        "white": "#E9EDF1",
+        "brightBlack": "#60686E",
+        "brightRed": "#C95D40",
+        "brightGreen": "#74AA41",
+        "brightYellow": "#CC9833",
+        "brightBlue": "#417DC3",
+        "brightPurple": "#9355BE",
+        "brightCyan": "#47B8AB",
+        "brightWhite": "#F7FAFD"
+    }
+  ]
+}

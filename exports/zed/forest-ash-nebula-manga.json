@@ -1,0 +1,169 @@
+// Forest Ash Theme — Zed Editor Theme
+// Generated: 2026-07-19
+// Usage: save as  ~/.config/zed/themes/forest-ash.json
+//        then in settings.json: "theme": "Forest Ash Nebula Manga"
+{
+  "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
+  "name": "Forest Ash Nebula Manga",
+  "author": "Forest Ash Theme",
+  "themes": [
+    {
+      "name": "Forest Ash Nebula Manga",
+      "appearance": "dark",
+      "style": {
+        "background": "#11131A",
+        "editor.background": "#11131A",
+        "editor.foreground": "#DADDED",
+        "editor.line_number": "#7F86A0",
+        "editor.active_line_number": "#DADDED",
+        "editor.selection.background": "#3A427660",
+        "editor.gutter.background": "#131826",
+        "editor.active_line.background": "#13182640",
+        "editor.highlighted_line.background": "#13182640",
+        "editor.invisible": "#7F86A0",
+        "editor.document_highlight.read_background": "#A9B0ED20",
+        "editor.document_highlight.write_background": "#A9B0ED30",
+        "surface.background": "#131826",
+        "panel.background": "#131826",
+        "pane.focused_border": "#A9B0ED",
+        "toolbar.background": "#131826",
+        "tab_bar.background": "#131826",
+        "tab.active_background": "#11131A",
+        "tab.inactive_background": "#131826",
+        "scrollbar_thumb.background": "#A9B0ED40",
+        "scrollbar.track.background": "#131826",
+        "scrollbar.track.border": "#3A466D",
+        "status_bar.background": "#1D2435",
+        "title_bar.background": "#131826",
+        "title_bar.inactive_background": "#131826",
+        "border": "#3A466D",
+        "border.selected": "#A9B0ED",
+        "border.focused": "#A9B0ED",
+        "text": "#DADDED",
+        "text.muted": "#7F86A0",
+        "text.placeholder": "#7F86A0",
+        "text.accent": "#A9B0ED",
+        "text.disabled": "#7F86A0",
+        "link_text.hover": "#CED2FA",
+        "syntax": {
+          "comment": {
+            "color": "#7F86A0",
+            "font_style": "italic"
+          },
+          "keyword": {
+            "color": "#C7B97F",
+            "font_weight": 700
+          },
+          "operator": {
+            "color": "#DADDED"
+          },
+          "string": {
+            "color": "#9FA6E8"
+          },
+          "string.escape": {
+            "color": "#A9B0ED"
+          },
+          "number": {
+            "color": "#B6BCF0"
+          },
+          "boolean": {
+            "color": "#B6BCF0"
+          },
+          "null_literal": {
+            "color": "#B6BCF0"
+          },
+          "function": {
+            "color": "#CED2FA"
+          },
+          "function.call": {
+            "color": "#CED2FA"
+          },
+          "function.builtin": {
+            "color": "#CED2FA"
+          },
+          "method": {
+            "color": "#CED2FA"
+          },
+          "method.call": {
+            "color": "#CED2FA"
+          },
+          "type": {
+            "color": "#BDC1F7"
+          },
+          "type.builtin": {
+            "color": "#BDC1F7"
+          },
+          "constructor": {
+            "color": "#BDC1F7"
+          },
+          "variable": {
+            "color": "#DADDED"
+          },
+          "variable.member": {
+            "color": "#DADDED"
+          },
+          "variable.parameter": {
+            "color": "#DADDED",
+            "font_style": "italic"
+          },
+          "attribute": {
+            "color": "#BDC1F7"
+          },
+          "tag": {
+            "color": "#C7B97F"
+          },
+          "tag.attribute": {
+            "color": "#DADDED"
+          },
+          "embedded": {
+            "color": "#DADDED"
+          },
+          "markup.heading": {
+            "color": "#C7B97F",
+            "font_weight": 700
+          },
+          "markup.list": {
+            "color": "#DADDED"
+          },
+          "markup.bold": {
+            "color": "#DADDED",
+            "font_weight": 700
+          },
+          "markup.italic": {
+            "color": "#DADDED",
+            "font_style": "italic"
+          },
+          "markup.link_text": {
+            "color": "#CED2FA"
+          },
+          "markup.link_url": {
+            "color": "#9FA6E8"
+          },
+          "markup.raw": {
+            "color": "#9FA6E8"
+          }
+        },
+        "terminal.background": "#11131A",
+        "terminal.foreground": "#DADDED",
+        "terminal.bright_foreground": "#DADDED",
+        "terminal.dim_foreground": "#7F86A0",
+        "terminal.ansi.black": "#171E2C",
+        "terminal.ansi.red": "#CA8AA4",
+        "terminal.ansi.green": "#90C4AA",
+        "terminal.ansi.yellow": "#C7B97F",
+        "terminal.ansi.blue": "#8EA9E1",
+        "terminal.ansi.magenta": "#B79CDE",
+        "terminal.ansi.cyan": "#8CC5D8",
+        "terminal.ansi.white": "#DADDED",
+        "terminal.ansi.bright_black": "#4F545F",
+        "terminal.ansi.bright_red": "#D6A4B8",
+        "terminal.ansi.bright_green": "#A8D1BD",
+        "terminal.ansi.bright_yellow": "#D3C89B",
+        "terminal.ansi.bright_blue": "#A7BCE8",
+        "terminal.ansi.bright_magenta": "#C7B2E5",
+        "terminal.ansi.bright_cyan": "#A5D2E1",
+        "terminal.ansi.bright_white": "#DDE0EE"
+      }
+    }
+  ]
+}

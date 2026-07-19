@@ -1,0 +1,38 @@
+// Forest Ash Theme — Windows Terminal Color Scheme
+// Generated: 2026-07-19
+// Usage:
+//   1. Open Windows Terminal Settings (Ctrl+,)
+//   2. Click "Open JSON file" at bottom left
+//   3. Add the object below to the "schemes" array
+//   4. In your profile, set: "colorScheme": "Forest Ash Sakura Charcoal Light"
+//
+// Fragment install: save as  fragment.json  in
+// %LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\ForestAsh\
+
+{
+  "schemes": [
+    {
+        "name": "Forest Ash Sakura Charcoal Light",
+        "background": "#F8F6F8",
+        "foreground": "#412F39",
+        "cursorColor": "#412F39",
+        "selectionBackground": "#DDC5D1",
+        "black": "#6A7549",
+        "red": "#A63A50",
+        "green": "#397F4E",
+        "yellow": "#A37C33",
+        "blue": "#3C629A",
+        "purple": "#81469B",
+        "cyan": "#41878B",
+        "white": "#6C7BB7",
+        "brightBlack": "#785117",
+        "brightRed": "#C9405B",
+        "brightGreen": "#41AA60",
+        "brightYellow": "#CC9733",
+        "brightBlue": "#1CDF5B",
+        "brightPurple": "#9F55BE",
+        "brightCyan": "#47B1B8",
+        "brightWhite": "#FE31F6"
+    }
+  ]
+}

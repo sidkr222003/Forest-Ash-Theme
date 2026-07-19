@@ -1,0 +1,38 @@
+// Forest Ash Theme — Windows Terminal Color Scheme
+// Generated: 2026-07-19
+// Usage:
+//   1. Open Windows Terminal Settings (Ctrl+,)
+//   2. Click "Open JSON file" at bottom left
+//   3. Add the object below to the "schemes" array
+//   4. In your profile, set: "colorScheme": "Forest Ash Kage Washi Light"
+//
+// Fragment install: save as  fragment.json  in
+// %LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\ForestAsh\
+
+{
+  "schemes": [
+    {
+        "name": "Forest Ash Kage Washi Light",
+        "background": "#F6F8F8",
+        "foreground": "#313F35",
+        "cursorColor": "#313F35",
+        "selectionBackground": "#C7DBD5",
+        "black": "#7397FA",
+        "red": "#3AC921",
+        "green": "#397F5D",
+        "yellow": "#A38933",
+        "blue": "#3C639A",
+        "purple": "#65469B",
+        "cyan": "#678D57",
+        "white": "#1D554D",
+        "brightBlack": "#7E90C7",
+        "brightRed": "#53ED2E",
+        "brightGreen": "#41AA76",
+        "brightYellow": "#CCA933",
+        "brightBlue": "#4176C3",
+        "brightPurple": "#61818D",
+        "brightCyan": "#BE3ADC",
+        "brightWhite": "#EF2D49"
+    }
+  ]
+}

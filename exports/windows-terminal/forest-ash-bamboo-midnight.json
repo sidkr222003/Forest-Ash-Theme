@@ -1,0 +1,38 @@
+// Forest Ash Theme — Windows Terminal Color Scheme
+// Generated: 2026-07-19
+// Usage:
+//   1. Open Windows Terminal Settings (Ctrl+,)
+//   2. Click "Open JSON file" at bottom left
+//   3. Add the object below to the "schemes" array
+//   4. In your profile, set: "colorScheme": "Forest Ash Bamboo Midnight"
+//
+// Fragment install: save as  fragment.json  in
+// %LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\ForestAsh\
+
+{
+  "schemes": [
+    {
+        "name": "Forest Ash Bamboo Midnight",
+        "background": "#0F1512",
+        "foreground": "#D7E1D9",
+        "cursorColor": "#8ECFAE",
+        "selectionBackground": "#2E5A46",
+        "black": "#17221D",
+        "red": "#CC8A8A",
+        "green": "#8CC29F",
+        "yellow": "#C4B77E",
+        "blue": "#86A8CA",
+        "purple": "#AB97CF",
+        "cyan": "#86C7C0",
+        "white": "#D7E1D9",
+        "brightBlack": "#4F5753",
+        "brightRed": "#D7A4A4",
+        "brightGreen": "#A5CFB4",
+        "brightYellow": "#D1C79A",
+        "brightBlue": "#A1BBD6",
+        "brightPurple": "#BDAEDA",
+        "brightCyan": "#A1D3CE",
+        "brightWhite": "#DAE3DC"
+    }
+  ]
+}

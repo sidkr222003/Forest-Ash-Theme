@@ -1,0 +1,38 @@
+// Forest Ash Theme — Windows Terminal Color Scheme
+// Generated: 2026-07-19
+// Usage:
+//   1. Open Windows Terminal Settings (Ctrl+,)
+//   2. Click "Open JSON file" at bottom left
+//   3. Add the object below to the "schemes" array
+//   4. In your profile, set: "colorScheme": "Forest Ash Kitsune Ink Light"
+//
+// Fragment install: save as  fragment.json  in
+// %LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\ForestAsh\
+
+{
+  "schemes": [
+    {
+        "name": "Forest Ash Kitsune Ink Light",
+        "background": "#F8F6F6",
+        "foreground": "#41382F",
+        "cursorColor": "#41382F",
+        "selectionBackground": "#E1CDC1",
+        "black": "#C12971",
+        "red": "#A6563A",
+        "green": "#607F39",
+        "yellow": "#A37D33",
+        "blue": "#3C719A",
+        "purple": "#87469B",
+        "cyan": "#418B89",
+        "white": "#5F8319",
+        "brightBlack": "#472777",
+        "brightRed": "#C96340",
+        "brightGreen": "#7CAA41",
+        "brightYellow": "#CC9833",
+        "brightBlue": "#418AC3",
+        "brightPurple": "#A655BE",
+        "brightCyan": "#47B8B5",
+        "brightWhite": "#1B15CA"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+// Forest Ash Theme — Windows Terminal Color Scheme
+// Generated: 2026-07-19
+// Usage:
+//   1. Open Windows Terminal Settings (Ctrl+,)
+//   2. Click "Open JSON file" at bottom left
+//   3. Add the object below to the "schemes" array
+//   4. In your profile, set: "colorScheme": "Forest Ash Nebula Manga"
+//
+// Fragment install: save as  fragment.json  in
+// %LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\ForestAsh\
+
+{
+  "schemes": [
+    {
+        "name": "Forest Ash Nebula Manga",
+        "background": "#11131A",
+        "foreground": "#DADDED",
+        "cursorColor": "#A9B0ED",
+        "selectionBackground": "#3A4276",
+        "black": "#171E2C",
+        "red": "#CA8AA4",
+        "green": "#90C4AA",
+        "yellow": "#C7B97F",
+        "blue": "#8EA9E1",
+        "purple": "#B79CDE",
+        "cyan": "#8CC5D8",
+        "white": "#DADDED",
+        "brightBlack": "#4F545F",
+        "brightRed": "#D6A4B8",
+        "brightGreen": "#A8D1BD",
+        "brightYellow": "#D3C89B",
+        "brightBlue": "#A7BCE8",
+        "brightPurple": "#C7B2E5",
+        "brightCyan": "#A5D2E1",
+        "brightWhite": "#DDE0EE"
+    }
+  ]
+}

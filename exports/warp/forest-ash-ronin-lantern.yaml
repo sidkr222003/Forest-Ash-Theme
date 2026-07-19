@@ -1,0 +1,29 @@
+# Forest Ash Theme — Warp Terminal
+# Generated: 2026-07-19
+# Usage: save as  ~/.warp/themes/forest-ash.yaml
+#        then in Warp: Settings → Appearance → Themes → forest-ash
+
+name: "Forest Ash Ronin Lantern"
+accent: "#D5A26D"
+background: "#14110F"
+foreground: "#E2D8CF"
+details: "darker"
+terminal_colors:
+  normal:
+    black:   "#211A16"
+    red:     "#D18A77"
+    green:   "#A8C190"
+    yellow:  "#D0B277"
+    blue:    "#8EA8C6"
+    magenta: "#B897CF"
+    cyan:    "#90C7C1"
+    white:   "#E2D8CF"
+  bright:
+    black:   "#56514E"
+    red:     "#DBA495"
+    green:   "#BBCFA8"
+    yellow:  "#DAC395"
+    blue:    "#A7BBD3"
+    magenta: "#C8AEDA"
+    cyan:    "#A8D3CF"
+    white:   "#E4DBD3"

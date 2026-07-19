@@ -1,0 +1,29 @@
+# Forest Ash Theme — Warp Terminal
+# Generated: 2026-07-19
+# Usage: save as  ~/.warp/themes/forest-ash.yaml
+#        then in Warp: Settings → Appearance → Themes → forest-ash
+
+name: "Forest Ash Sakura Charcoal"
+accent: "#D8A8BE"
+background: "#151214"
+foreground: "#E3D8DE"
+details: "darker"
+terminal_colors:
+  normal:
+    black:   "#211920"
+    red:     "#C35A6A"
+    green:   "#95C1A2"
+    yellow:  "#D0B37C"
+    blue:    "#91A9CC"
+    magenta: "#C09BD0"
+    cyan:    "#92C5C8"
+    white:   "#E3D8DE"
+  bright:
+    black:   "#565056"
+    red:     "#DAA4AF"
+    green:   "#ACCFB6"
+    yellow:  "#DAC499"
+    blue:    "#A9BCD7"
+    magenta: "#CEB1DA"
+    cyan:    "#AAD2D4"
+    white:   "#E5DBE1"

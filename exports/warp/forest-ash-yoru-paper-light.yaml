@@ -1,0 +1,29 @@
+# Forest Ash Theme — Warp Terminal
+# Generated: 2026-07-19
+# Usage: save as  ~/.warp/themes/forest-ash.yaml
+#        then in Warp: Settings → Appearance → Themes → forest-ash
+
+name: "Forest Ash Yoru Paper Light"
+accent: "#313F31"
+background: "#F6F7F8"
+foreground: "#313F31"
+details: "lighter"
+terminal_colors:
+  normal:
+    black:   "#3A4044"
+    red:     "#A63A3A"
+    green:   "#397F5B"
+    yellow:  "#A38433"
+    blue:    "#3C759A"
+    magenta: "#77469B"
+    cyan:    "#418B7E"
+    white:   "#E9EDF1"
+  bright:
+    black:   "#60686E"
+    red:     "#C94040"
+    green:   "#41AA74"
+    yellow:  "#CCA233"
+    blue:    "#4190C3"
+    magenta: "#9255BE"
+    cyan:    "#47B8A4"
+    white:   "#F7FAFD"

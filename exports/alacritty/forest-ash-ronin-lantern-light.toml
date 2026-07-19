@@ -1,0 +1,47 @@
+# Forest Ash Theme — Alacritty Configuration
+# Generated: 2026-07-19
+# Usage: paste into your alacritty.toml, or import with:
+#   [general]
+#   import = ["~/.config/alacritty/themes/forest-ash.toml"]
+#
+# Alacritty ≥ 0.13 TOML format
+
+[colors.primary]
+background = "#F8F7F6"
+foreground = "#46372A"
+
+[colors.cursor]
+text   = "#F8F7F6"
+cursor = "#46372A"
+
+[colors.selection]
+text       = "#46372A"
+background = "#E6CFBC"
+
+[colors.normal]
+black   = "#3A4044"
+red     = "#A6513A"
+green   = "#5B7F39"
+yellow  = "#A37D33"
+blue    = "#3C689A"
+magenta = "#78469B"
+cyan    = "#418B83"
+white   = "#E9EDF1"
+
+[colors.bright]
+black   = "#60686E"
+red     = "#C95D40"
+green   = "#74AA41"
+yellow  = "#CC9833"
+blue    = "#417DC3"
+magenta = "#9355BE"
+cyan    = "#47B8AB"
+white   = "#F7FAFD"
+
+# Semantic colors (not standard Alacritty, for reference)
+# accent   = "#46372A"
+# keyword  = "#865428"
+# string   = "#865D32"
+# function = "#654929"
+# type     = "#6D4F2C"
+# comment  = "#997E66"

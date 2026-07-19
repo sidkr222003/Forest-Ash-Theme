@@ -1,0 +1,38 @@
+// Forest Ash Theme — Windows Terminal Color Scheme
+// Generated: 2026-07-19
+// Usage:
+//   1. Open Windows Terminal Settings (Ctrl+,)
+//   2. Click "Open JSON file" at bottom left
+//   3. Add the object below to the "schemes" array
+//   4. In your profile, set: "colorScheme": "Forest Ash Sumi Moon Light"
+//
+// Fragment install: save as  fragment.json  in
+// %LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\ForestAsh\
+
+{
+  "schemes": [
+    {
+        "name": "Forest Ash Sumi Moon Light",
+        "background": "#F6F6F8",
+        "foreground": "#353041",
+        "cursorColor": "#353041",
+        "selectionBackground": "#CAC5DE",
+        "black": "#342EC6",
+        "red": "#A63A62",
+        "green": "#397F57",
+        "yellow": "#A38133",
+        "blue": "#3C5E9A",
+        "purple": "#6B469B",
+        "cyan": "#417B8B",
+        "white": "#23388A",
+        "brightBlack": "#295BCD",
+        "brightRed": "#C94073",
+        "brightGreen": "#41AA6E",
+        "brightYellow": "#CC9D33",
+        "brightBlue": "#4170C3",
+        "brightPurple": "#8355BE",
+        "brightCyan": "#479FB8",
+        "brightWhite": "#DD5080"
+    }
+  ]
+}

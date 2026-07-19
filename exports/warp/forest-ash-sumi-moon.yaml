@@ -1,0 +1,29 @@
+# Forest Ash Theme — Warp Terminal
+# Generated: 2026-07-19
+# Usage: save as  ~/.warp/themes/forest-ash.yaml
+#        then in Warp: Settings → Appearance → Themes → forest-ash
+
+name: "Forest Ash Sumi Moon"
+accent: "#B9A9DD"
+background: "#121217"
+foreground: "#DCD9E3"
+details: "darker"
+terminal_colors:
+  normal:
+    black:   "#1D1D24"
+    red:     "#C7869E"
+    green:   "#9CC6AE"
+    yellow:  "#C6AF7B"
+    blue:    "#8CA3CC"
+    magenta: "#B294D8"
+    cyan:    "#8DBFCD"
+    white:   "#DCD9E3"
+  bright:
+    black:   "#535359"
+    red:     "#D3A1B3"
+    green:   "#B2D3C0"
+    yellow:  "#D3C198"
+    blue:    "#A5B7D7"
+    magenta: "#C3ACE1"
+    cyan:    "#A6CDD8"
+    white:   "#DFDCE5"

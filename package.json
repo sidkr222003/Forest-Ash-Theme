@@ -1,8 +1,8 @@
 {
   "name": "forest-ash-theme-vscode",
   "displayName": "Forest Ash Theme",
-  "description": "21 themes, infinite possibilities, zero cost - A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes with dynamic custom theme generation.",
-  "version": "1.4.0",
+  "description": "21 themes, infinite possibilities, zero cost - A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes. Features dynamic custom theme generation and multi-tool export to JetBrains, Neovim, Sublime Text, Windows Terminal, iTerm2, Alacritty, Zed, tmux, and Warp.",
+  "version": "1.5.0",
   "publisher": "NK2552003",
   "engines": {
     "vscode": "^1.70.0"
@@ -21,7 +21,17 @@
     "eye-friendly",
     "paper-like",
     "dynamic",
-    "custom"
+    "custom",
+    "jetbrains",
+    "neovim",
+    "vim",
+    "sublime",
+    "iterm2",
+    "alacritty",
+    "zed",
+    "warp",
+    "tmux",
+    "windows-terminal"
   ],
   "license": "MIT",
   "icon": "resources/icon.png",
@@ -64,7 +74,13 @@
     "onCommand:forestAsh.shareCustomTheme",
     "onCommand:forestAsh.importCustomTheme",
     "onCommand:forestAsh.applyCircadianTheme",
-    "onCommand:forestAsh.showThemeOfWeek"
+    "onCommand:forestAsh.showThemeOfWeek",
+    "onCommand:forestAsh.exportForTool",
+    "onCommand:forestAsh.exportAllThemes",
+    "onCommand:forestAsh.renameCustomTheme",
+    "onCommand:forestAsh.duplicateCustomTheme",
+    "onCommand:forestAsh.randomTheme",
+    "onCommand:forestAsh.exportPaletteScss"
   ],
   "contributes": {
     "commands": [
@@ -146,6 +162,36 @@
       {
         "command": "forestAsh.showThemeOfWeek",
         "title": "Forest Ash: Theme of the Week",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.exportForTool",
+        "title": "Forest Ash: Export Theme for External Tool",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.exportAllThemes",
+        "title": "Forest Ash: Export All Themes for External Tool",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.renameCustomTheme",
+        "title": "Forest Ash: Rename Custom Theme",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.duplicateCustomTheme",
+        "title": "Forest Ash: Duplicate Custom Theme",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.randomTheme",
+        "title": "Forest Ash: Surprise Me (Random Theme)",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.exportPaletteScss",
+        "title": "Forest Ash: Export Palette as SCSS",
         "category": "Forest Ash"
       }
     ],
@@ -281,6 +327,35 @@
           "command": "forestAsh.exportPaletteCss",
           "group": "5_export",
           "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.exportPaletteScss",
+          "group": "5_export",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.exportForTool",
+          "group": "5_export",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.exportAllThemes",
+          "group": "5_export",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.randomTheme",
+          "group": "1_core"
+        },
+        {
+          "command": "forestAsh.renameCustomTheme",
+          "group": "4_custom",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.duplicateCustomTheme",
+          "group": "4_custom",
+          "when": "!isWeb"
         }
       ],
       "forestAsh.customTheme.context": [
@@ -367,6 +442,29 @@
         },
         {
           "command": "forestAsh.showThemeOfWeek",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.exportForTool",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.exportAllThemes",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.renameCustomTheme",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.duplicateCustomTheme",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.randomTheme"
+        },
+        {
+          "command": "forestAsh.exportPaletteScss",
           "when": "!isWeb"
         }
       ]
@@ -465,6 +563,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show the Theme of the Week webview on startup (once per week)."
+        },
+        "forestAsh.multiToolExport.lastTool": {
+          "type": "string",
+          "default": "",
+          "description": "ID of the last tool used in the Export for External Tool command (for pre-selection)."
         }
       }
     },

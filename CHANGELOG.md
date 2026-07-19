@@ -2,7 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-07-19
+
+### New Features
+
+#### Multi-Tool Export Engine (`src/themeExporter.js`)
+- **`Forest Ash: Export Theme for External Tool`** — Step-by-step wizard to export any Forest Ash palette to 9 external editors and terminals: JetBrains IDEs (`.icls`), Neovim/Vim (`.lua`), Sublime Text (`.tmTheme`), Windows Terminal (`fragment.json`), iTerm2 (`.itermcolors`), Alacritty (`.toml`), Zed (`.json`), tmux (`.conf`), and Warp Terminal (`.yaml`).
+- **`Forest Ash: Export All Themes for External Tool`** — Batch-exports all 21 built-in themes for a chosen tool into a folder in one step. Includes a progress notification.
+- New `src/themeExporter.js` — pure, dependency-free export engine. No VS Code imports; all format renders are plain string templates.
+
+#### Custom Theme Management
+- **`Forest Ash: Rename Custom Theme`** — Rename a saved custom theme (updates the JSON name field, `package.json` entry, and global state atomically).
+- **`Forest Ash: Duplicate Custom Theme`** — Clone a custom theme to a new name (copies the JSON file and creates an independent entry).
+
+#### Discovery
+- **`Forest Ash: Surprise Me (Random Theme)`** — Instantly applies a random Forest Ash theme (built-in or custom), excluding the currently active one. Shows the mood description in the notification.
+
+#### Export
+- **`Forest Ash: Export Palette as SCSS`** — Exports the active palette as SCSS variables (`$fa-*`) with a companion `:root {}` CSS custom properties block.
+
+### Bug Fixes
+
+- **Status bar swatch** — The `forestAsh.showSwatchInStatusBar` setting existed in configuration since v1.3 but was never wired to an actual status bar item. Now implemented: when any Forest Ash theme is active, a `$(symbol-color) <theme-name>` item appears in the right status bar. Clicking it opens the Quick Theme Picker. The item updates automatically when you switch themes.
+- **Quick Picker mood descriptions** — The `THEME_MOODS` map was populated but never used in `cmdQuickThemePicker`. All 21 built-in themes now show their atmospheric mood in the `detail` line of the Quick Pick dropdown.
+- **Focus Mode debounce flicker** — Reduced `scheduleFocusUpdate` delay from 120ms to 80ms to eliminate the brief visible line-number flicker on cursor movement.
+- **`patchPackageJson` race condition** — Concurrent calls (e.g., from `generate` + `syncOnActivation` running simultaneously) could produce a partially written or corrupt `package.json`. Writes are now serialised through a `pkgWriteLock` promise chain.
+- **Web extension Quick Picker** — Dark/light description fixed from raw `vs-dark`/`vs` strings to human-readable `$(moon) Dark` / `$(sun) Light` labels.
+
+### Changed
+
+- `package.json` version bumped to `1.5.0`.
+- `description` in `package.json` updated to mention multi-tool export and all supported tools.
+- `keywords` extended with: `jetbrains`, `neovim`, `vim`, `sublime`, `iterm2`, `alacritty`, `zed`, `warp`, `tmux`, `windows-terminal`.
+- New setting `forestAsh.multiToolExport.lastTool` added (stores last used export target for future pre-selection UX).
+- All new commands registered in both desktop (`extension.js`) and web (`extension-web.js`) entry points.
+
+### Internal
+
+- `src/extension-web.js` refactored to use one-liner stubs for all commands (reduces file length while maintaining full parity).
+
 ## [1.4.0] - 2026-05-18
+
 
 ### High Impact Features
 
