@@ -209,17 +209,20 @@
         {
           "type": "webview",
           "id": "forestAsh.themePreviewView",
-          "name": "Theme Preview"
+          "name": "Theme Preview",
+          "icon": "resources/icon.svg"
         },
         {
           "type": "webview",
           "id": "forestAsh.paletteView",
-          "name": "Active Palette"
+          "name": "Active Palette",
+          "icon": "resources/icon.svg"
         },
         {
           "id": "forestAsh.customThemesView",
           "name": "Custom Themes",
-          "type": "webview"
+          "type": "webview",
+          "icon": "resources/icon.svg"
         }
       ]
     },
