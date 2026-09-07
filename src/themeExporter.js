@@ -655,6 +655,65 @@ white   = "${ansi.brightWhite}"
 # type     = "${p.type}"
 # comment  = "${p.comment}"
 `;
+};
+
+
+/**
+ * Helix Editor theme (.toml).
+ * Place in ~/.config/helix/themes/forest-ash.toml, then set in config.toml:
+ *   theme = "forest-ash"
+ *
+ * Helix uses a [colors] section with groups for UI elements and highlight groups
+ * for syntax highlighting. This exporter maps the palette to the most common
+ * groups for a solid starting point; users may fine-tune specific highlight groups
+ * after installation.
+ */
+function exportHelix(palette) {
+  const p = palette;
+
+  const q = (s) => `"${s}"`;
+
+  const lines = [
+    '# Forest Ash Theme — Helix Configuration',
+    '# Generated: ' + now(),
+    '# Place in ~/.config/helix/themes/forest-ash.toml',
+    '# Then set in ~/.config/helix/config.toml:  theme = "forest-ash"',
+    '',
+    '[colors]',
+    '',
+    '# Editor basics',
+    'background   = ' + q(p.bg),
+    'foreground   = ' + q(p.fg),
+    'line-number  = ' + q(p.lineNum),
+    'selection-background = ' + q(p.selection),
+    '',
+    '# UI chrome',
+    'surface      = ' + q(p.uiBg),
+    'comment      = ' + q(p.comment),
+    'cursor       = ' + q(p.accent),
+    'cursor-line  = ' + q(p.accent),
+    '',
+    '# Semantic/syntax mappings (best-effort; users can override per highlight group)',
+    'keyword      = ' + q(p.keyword),
+    'string       = ' + q(p.string),
+    'function     = ' + q(p.func),
+    'type         = ' + q(p.type),
+    'number       = ' + q(p.number),
+    'variable     = ' + q(p.variable),
+    '',
+    '# Borders / separators',
+    'block        = ' + q(p.border),
+    '',
+    '[colors.statusline]',
+    'background   = ' + q(p.statusBg),
+    'foreground   = ' + q(p.statusFg),
+    '',
+    '[colors.prompt]',
+    'prompt       = ' + q(p.accent),
+    'prompt-foreground = ' + q(p.bg),
+  ].join('\n');
+
+  return lines;
 }
 
 /**
@@ -944,6 +1003,15 @@ const EXPORT_TARGETS = [
     ext:         '.yaml',
     filterName:  'YAML',
     export:      exportWarp,
+  },
+  {
+    id:          'helix',
+    label:       '$(zap) Helix Editor (.toml)',
+    description: 'Helix terminal editor — TOML theme format',
+    detail:      'Place in ~/.config/helix/themes/  then set in config.toml',
+    ext:         '.toml',
+    filterName:  'TOML',
+    export:      exportHelix,
   },
 ];
 
