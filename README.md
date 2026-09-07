@@ -47,7 +47,7 @@ This extension includes 21 hand-crafted themes plus unlimited custom themes you 
 
 ---
 
-## 🌍 Multi-Tool Export (v1.5.0)
+## 🌍 Multi-Tool Export (v1.5.2)
 
 Take any Forest Ash palette — built-in or custom-generated — and export it for your other tools with a single command.
 
@@ -138,13 +138,13 @@ Contrast and readability are preserved automatically for both dark and light var
 
 ## High Impact Features
 
-### Status Bar Swatch (v1.5.0 fix)
+### Status Bar Swatch (v1.5.2 fix)
 
 When a Forest Ash theme is active, the status bar shows a `⬤ ThemeName` indicator. Click it to open the Quick Theme Picker instantly.
 
 - Setting: `forestAsh.showSwatchInStatusBar` (default: `true`)
 
-### Quick Picker Mood Descriptions (v1.5.0 fix)
+### Quick Picker Mood Descriptions (v1.5.2 fix)
 
 The Quick Theme Picker now shows the mood/atmosphere description for every built-in theme:
 
@@ -269,7 +269,7 @@ Generated themes are saved inside the extension's `themes/custom/` folder and re
 | `name` | `forest-ash-theme` |
 | `displayName` | `Forest Ash Theme` |
 | `publisher` | `NK2552003` |
-| `version` | `1.5.0` |
+| `version` | `1.5.2` |
 | `engines.vscode` | `^1.70.0` |
 
 ---
@@ -294,7 +294,7 @@ forest-ash-theme/
 │   ├── extension.js          # desktop entry point, commands
 │   ├── extension-web.js      # web entry point
 │   ├── themeGenerator.js     # dynamic palette + theme JSON builder
-│   ├── themeExporter.js      # multi-tool export engine (v1.5.0)
+│   ├── themeExporter.js      # multi-tool export engine (v1.5.2)
 │   ├── themeReading.js       # shared theme JSON loader
 │   └── themeWebviews.js      # preview/palette webview helpers
 ├── themes/
@@ -552,29 +552,46 @@ npm run publish      # publish to VS Code Marketplace
 ## Repository Structure
 
 ```
-forest-ash-theme/
-├── extension.js              # extension entry point, all commands
-├── package.json              # manifest, contributes.themes, commands
-├── src/
-│   ├── extension.js          # desktop entry point, commands
-│   ├── extension-web.js      # web entry point
-│   ├── themeGenerator.js     # dynamic palette + theme JSON builder
-│   ├── themeReading.js       # shared theme JSON loader
-│   └── themeWebviews.js      # preview/palette webview helpers
-├── themes/
-│   ├── *.json                # 21 hand-crafted static themes
-│   └── custom/               # runtime-generated user themes (git-ignored)
-│       └── .gitkeep
-├── docs/
-│   └── 1.4.0-features.md      # feature walkthrough for 1.4.0
-├── share/
-│   └── README.md              # community theme submissions
-├── resources/
-│   ├── icon.png
-│   ├── Preview.png
+├── CHANGELOG.md
+├── CODE_OF_CONDUCT.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── README.md
+├── SECURITY.md
+├── docs
+│   └── features-how-it-works.md
+├── exports
+│   ├── alacritty
+│   ├── iterm2
+│   ├── jetbrains
+│   ├── neovim
+│   ├── sublime
+│   ├── tmux
+│   ├── warp
+│   ├── windows-terminal
+│   └── zed
+├── package-lock.json
+├── package.json
+├── resources
 │   ├── dark.png
+│   ├── demo.gif
+│   ├── icon.png
+│   ├── icon.svg
 │   └── light.png
-└── README.md
+├── share
+│   └── README.md
+├── src
+│   ├── extension-web.js
+│   ├── extension.js
+│   ├── themeExporter.js
+│   ├── themeGenerator.js
+│   ├── themeReading.js
+│   ├── themeWebviews.js
+│   └── themesList.js
+└── themes
+    ├── custom
+
+17 directories, 234 files
 ```
 
 ---

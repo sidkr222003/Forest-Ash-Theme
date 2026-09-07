@@ -2,7 +2,7 @@
   "name": "forest-ash-theme-vscode",
   "displayName": "Forest Ash Theme",
   "description": "21 themes, infinite possibilities, zero cost - A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes. Features dynamic custom theme generation and multi-tool export to JetBrains, Neovim, Sublime Text, Windows Terminal, iTerm2, Alacritty, Zed, tmux, and Warp.",
-  "version": "1.5.0",
+  "version": "1.5.2",
   "publisher": "NK2552003",
   "engines": {
     "vscode": "^1.70.0"

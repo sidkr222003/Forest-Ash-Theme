@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.2] - 2026-09-07
+
+### Changed
+
+- Bumped the extension and package metadata version to `1.5.2`.
+- Updated current version references in the README and extension entry points as
+  part of this pull request.
+- Adds Helix editor (.toml) as a new export target in the multi-tool export engine. Users can export Forest Ash themes to ~/.config/helix/ themes/ and activate via config.toml.
+
+
 ## [1.5.0] - 2026-07-19
 
 ### New Features
