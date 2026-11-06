@@ -15,6 +15,12 @@ const {
   buildThemeOfWeekHtml,
 } = require('./themeWebviews');
 const { buildPalette, EXPORT_TARGETS } = require('./themeExporter');
+const { buildThemeStudioHtml } = require('./themeStudio');
+const {
+  validateThemeName,
+  validateThemeJson,
+  parsePaletteText,
+} = require('./themeValidation');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -23,6 +29,12 @@ const FOCUS_STATE_KEY = 'forestAsh.focusModeState';
 const CONTRAST_STATE_KEY = 'forestAsh.highContrastState';
 const LANGUAGE_ACCENT_STATE_KEY = 'forestAsh.languageAccentState';
 const THEME_OF_WEEK_STATE_KEY = 'forestAsh.themeOfWeekState';
+const FAVORITES_STATE_KEY = 'forestAsh.favoriteThemes';
+const RECENT_STATE_KEY = 'forestAsh.recentThemes';
+const WORKSPACE_THEMES_KEY = 'forestAsh.workspaceThemes';
+const STUDIO_BACKUP_KEY = 'forestAsh.themeStudioBackup';
+const STUDIO_AUTOSAVE_KEY = 'forestAsh.themeStudioAutosave';
+const STUDIO_RULE_NAME = 'Forest Ash Theme Studio';
 
 const ITALIC_RULE_NAME = 'Forest Ash Italic Mode';
 const CONTRAST_RULE_NAME = 'Forest Ash High Contrast';
@@ -35,6 +47,9 @@ let paletteViewProvider    = null;
 let themePreviewProvider   = null;
 let customThemesProvider   = null;
 let statusBarItem          = null;
+let workspaceThemeTimer    = null;
+let studioStatusBarItem    = null;
+let themeOfWeekPanel       = null;
 
 // Simple in-memory lock to prevent concurrent package.json writes
 let pkgWriteLock = Promise.resolve();
@@ -88,7 +103,7 @@ function patchPackageJson(meta) {
     });
 
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
-  }).catch(err => console.error('[ForestAsh] patchPackageJson error:', err.message));
+  });
   return pkgWriteLock;
 }
 
@@ -245,6 +260,86 @@ function resolveCustomThemeMeta(customs, input) {
     return customs.find(t => t.label === input) || null;
   }
   return null;
+}
+
+function getFavorites(context) {
+  return context.globalState.get(FAVORITES_STATE_KEY, []);
+}
+
+async function recordThemeUse(context, label) {
+  const recent = context.globalState.get(RECENT_STATE_KEY, []).filter(item => item !== label);
+  recent.unshift(label);
+  await context.globalState.update(RECENT_STATE_KEY, recent.slice(0, 10));
+}
+
+function applyPreset(themeJson, preset) {
+  const next = JSON.parse(JSON.stringify(themeJson));
+  const colors = next.colors || (next.colors = {});
+  const background = colors['editor.background'] || '#1e1e1e';
+  const foreground = colors['editor.foreground'] || '#d4d4d4';
+  const accent = colors['textLink.foreground'] || colors['editorCursor.foreground'] || '#61afef';
+  const transformTokens = transform => {
+    next.tokenColors = (next.tokenColors || []).map(rule => ({
+      ...rule,
+      settings: {
+        ...rule.settings,
+        ...(rule.settings?.foreground ? { foreground: transform(rule.settings.foreground) } : {}),
+      },
+    }));
+  };
+  if (preset === 'oled') {
+    colors['editor.background'] = '#000000';
+    colors['sideBar.background'] = '#050505';
+    colors['panel.background'] = '#050505';
+  } else if (preset === 'warm-night') {
+    colors['editor.background'] = chroma(background).set('hsl.h', '+8').set('hsl.s', '*0.75').hex();
+    colors['editor.foreground'] = chroma(foreground).set('hsl.h', '+8').hex();
+    transformTokens(color => chroma(color).set('hsl.h', '+8').set('hsl.s', '*0.8').hex());
+  } else if (preset === 'paper-light') {
+    colors['editor.background'] = '#f6f1e7';
+    colors['editor.foreground'] = '#2c2925';
+    colors['sideBar.background'] = '#eee8dc';
+  } else if (preset === 'high-contrast') {
+    colors['editor.background'] = background;
+    colors['editor.foreground'] = chroma(foreground).luminance(0.85).hex();
+    transformTokens(color => chroma(color).luminance(0.72).hex());
+  } else if (preset === 'calm') {
+    colors['editor.background'] = chroma(background).set('hsl.s', '*0.7').hex();
+    colors['editor.foreground'] = chroma(foreground).set('hsl.s', '*0.5').hex();
+    transformTokens(color => chroma(color).set('hsl.s', '*0.7').hex());
+  } else if (preset === 'color-blind') {
+    colors['textLink.foreground'] = '#0072B2';
+    colors['editorCursor.foreground'] = '#E69F00';
+    colors['editorError.foreground'] = '#D55E00';
+    colors['editorWarning.foreground'] = '#F0E442';
+    colors['editorInfo.foreground'] = '#56B4E9';
+  }
+  colors['editorCursor.foreground'] = colors['editorCursor.foreground'] || accent;
+  return next;
+}
+
+function transformThemeForSimulation(themeJson, mode) {
+  const next = JSON.parse(JSON.stringify(themeJson));
+  const matrix = {
+    deuteranopia: [0.625, 0.7, 0, 0.375, 0.3, 0, 0, 0, 1],
+    protanopia: [0.567, 0.433, 0, 0.558, 0.442, 0, 0, 0, 1],
+    tritanopia: [0.95, 0.05, 0, 0, 0.433, 0.567, 0, 0.475, 0.525],
+  }[mode];
+  if (!matrix) return next;
+  const transform = value => {
+    if (!/^#[0-9a-f]{6}$/i.test(value)) return value;
+    const rgb = [0, 2, 4].map(i => parseInt(value.slice(i + 1, i + 3), 16));
+    const result = [0, 1, 2].map(row => Math.round(
+      matrix[row * 3] * rgb[0] + matrix[row * 3 + 1] * rgb[1] + matrix[row * 3 + 2] * rgb[2]
+    ));
+    return `#${result.map(channel => Math.max(0, Math.min(255, channel)).toString(16).padStart(2, '0')).join('')}`;
+  };
+  next.colors = Object.fromEntries(Object.entries(next.colors || {}).map(([key, value]) => [key, transform(value)]));
+  next.tokenColors = (next.tokenColors || []).map(rule => ({
+    ...rule,
+    settings: { ...rule.settings, foreground: transform(rule.settings?.foreground || '') },
+  }));
+  return next;
 }
 
 // ─── Universal theme JSON reader ──────────────────────────────────────────────
@@ -1163,6 +1258,76 @@ async function restoreWorkbenchColors(context, stateKey) {
   await context.globalState.update(stateKey, null);
 }
 
+function studioThemeKey(label) {
+  return `[${String(label || '').replace(/[\\"]/g, '')}]`;
+}
+
+async function applyStudioOverrides(context, label, colors, tokenColors = [], semanticTokenColors = {}, semanticHighlighting = true) {
+  if (!label) throw new Error('Theme Studio requires a theme name.');
+  const workbench = vscode.workspace.getConfiguration('workbench');
+  const editor = vscode.workspace.getConfiguration('editor');
+  const backup = context.globalState.get(STUDIO_BACKUP_KEY);
+  if (!backup) {
+    await context.globalState.update(STUDIO_BACKUP_KEY, {
+      workbench: workbench.get('colorCustomizations') || {},
+      token: editor.get('tokenColorCustomizations') || {},
+      semantic: editor.get('semanticTokenColorCustomizations') || {},
+      label,
+    });
+  }
+  const key = studioThemeKey(label);
+  const colorCustomizations = { ...(workbench.get('colorCustomizations') || {}) };
+  colorCustomizations[key] = { ...(colorCustomizations[key] || {}), ...colors };
+  const tokenCustomizations = { ...(editor.get('tokenColorCustomizations') || {}) };
+  tokenCustomizations[key] = {
+    ...(tokenCustomizations[key] || {}),
+    textMateRules: tokenColors,
+  };
+  const semanticCustomizations = { ...(editor.get('semanticTokenColorCustomizations') || {}) };
+  semanticCustomizations[key] = {
+    ...(semanticCustomizations[key] || {}),
+    enabled: semanticHighlighting,
+    rules: semanticTokenColors,
+  };
+  await workbench.update('colorCustomizations', colorCustomizations, vscode.ConfigurationTarget.Global);
+  await editor.update('tokenColorCustomizations', tokenCustomizations, vscode.ConfigurationTarget.Global);
+  await editor.update('semanticTokenColorCustomizations', semanticCustomizations, vscode.ConfigurationTarget.Global);
+  if (!studioStatusBarItem) {
+    studioStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
+    studioStatusBarItem.command = 'forestAsh.themeStudio';
+    context.subscriptions.push(studioStatusBarItem);
+  }
+  studioStatusBarItem.text = '$(paintcan) Theme Studio: live';
+  studioStatusBarItem.tooltip = 'Theme Studio live overrides are active';
+  studioStatusBarItem.show();
+}
+
+async function restoreStudioOverrides(context) {
+  const backup = context.globalState.get(STUDIO_BACKUP_KEY);
+  if (!backup) return false;
+  const workbench = vscode.workspace.getConfiguration('workbench');
+  const editor = vscode.workspace.getConfiguration('editor');
+  await workbench.update('colorCustomizations', backup.workbench, vscode.ConfigurationTarget.Global);
+  await editor.update('tokenColorCustomizations', backup.token, vscode.ConfigurationTarget.Global);
+  await editor.update('semanticTokenColorCustomizations', backup.semantic, vscode.ConfigurationTarget.Global);
+  await context.globalState.update(STUDIO_BACKUP_KEY, null);
+  studioStatusBarItem?.hide();
+  return true;
+}
+
+async function removeAllStudioOverrides(context) {
+  const restored = await restoreStudioOverrides(context);
+  if (!restored) {
+    const workbench = vscode.workspace.getConfiguration('workbench');
+    const editor = vscode.workspace.getConfiguration('editor');
+    const keyPattern = key => Object.fromEntries(Object.entries(key || {}).filter(([name]) => !name.startsWith('[Forest Ash')));
+    await workbench.update('colorCustomizations', keyPattern(workbench.get('colorCustomizations')), vscode.ConfigurationTarget.Global);
+    await editor.update('tokenColorCustomizations', keyPattern(editor.get('tokenColorCustomizations')), vscode.ConfigurationTarget.Global);
+    await editor.update('semanticTokenColorCustomizations', keyPattern(editor.get('semanticTokenColorCustomizations')), vscode.ConfigurationTarget.Global);
+  }
+  await context.globalState.update(STUDIO_AUTOSAVE_KEY, null);
+}
+
 async function updateTokenColorRules(name, rules, languageKey = null) {
   const config = vscode.workspace.getConfiguration('editor');
   const customizations = config.get('tokenColorCustomizations') || {};
@@ -1223,11 +1388,15 @@ const THEME_MOODS = {
 async function cmdGenerateTheme(context) {
   const dir = customThemesDir();
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const config = vscode.workspace.getConfiguration('forestAsh');
+  const configuredBaseColor = config.get('lastBaseColor', '#4a9eff');
+  const configuredVariant = config.get('defaultVariant', 'dark');
 
   const colorInput = await vscode.window.showInputBox({
     title:       'Forest Ash Theme Generator - Step 1 of 3',
     prompt:      'Enter your base accent color as a hex value',
     placeHolder: '#4a9eff',
+    value:       /^#[0-9A-Fa-f]{6}$/.test(configuredBaseColor) ? configuredBaseColor : '#4a9eff',
     validateInput(val) {
       if (!val) return null;
       if (!/^#[0-9A-Fa-f]{6}$/.test(val.trim()))
@@ -1238,12 +1407,18 @@ async function cmdGenerateTheme(context) {
   if (!colorInput) return;
   const baseColor = colorInput.trim().toLowerCase();
 
+  const variantItems = [
+    { label: '$(moon) Dark',  description: 'Deep, low-glare', id: 'dark'  },
+    { label: '$(sun) Light',  description: 'Paper-like',      id: 'light' },
+  ];
   const variant = await vscode.window.showQuickPick(
-    [
-      { label: '$(moon) Dark',  description: 'Deep, low-glare', id: 'dark'  },
-      { label: '$(sun) Light',  description: 'Paper-like',      id: 'light' },
-    ],
-    { title: 'Forest Ash Theme Generator - Step 2 of 3' }
+    variantItems,
+    {
+      title: 'Forest Ash Theme Generator - Step 2 of 3',
+      placeHolder: 'Choose a variant',
+      canPickMany: false,
+      activeItem: variantItems.find(item => item.id === configuredVariant) || variantItems[0],
+    }
   );
   if (!variant) return;
   const isDark = variant.id === 'dark';
@@ -1263,7 +1438,11 @@ async function cmdGenerateTheme(context) {
   const label = themeName.trim();
 
   const customs = getCustomThemes(context);
-  if (customs.some(t => t.label === label)) {
+  if (label.length > 80) {
+    vscode.window.showErrorMessage('Theme names must be 80 characters or fewer.');
+    return;
+  }
+  if (customs.some(t => t.label.toLowerCase() === label.toLowerCase())) {
     vscode.window.showErrorMessage(
       `"${label}" already exists. Choose a different name.`
     );
@@ -1294,8 +1473,9 @@ async function cmdGenerateTheme(context) {
       fileName,
       generatedAt: timestamp,
     };
-    patchPackageJson(meta);
+    await patchPackageJson(meta);
     await saveCustomMeta(context, meta);
+    await config.update('lastBaseColor', baseColor, vscode.ConfigurationTarget.Global);
     customThemesProvider?.refresh();
   } catch (err) {
     vscode.window.showErrorMessage(
@@ -1321,6 +1501,7 @@ async function cmdApplyCustomTheme(context, themeArg = null) {
     await vscode.workspace.getConfiguration('workbench').update(
       'colorTheme', direct.label, vscode.ConfigurationTarget.Global
     );
+    await recordThemeUse(context, direct.label);
     vscode.window.showInformationMessage(`Applied: ${direct.label}`);
     return;
   }
@@ -1342,6 +1523,7 @@ async function cmdApplyCustomTheme(context, themeArg = null) {
   await vscode.workspace.getConfiguration('workbench').update(
     'colorTheme', picked.label, vscode.ConfigurationTarget.Global
   );
+  await recordThemeUse(context, picked.label);
   vscode.window.showInformationMessage(`Applied: ${picked.label}`);
 }
 
@@ -1456,6 +1638,7 @@ async function cmdQuickThemePicker(context) {
   await vscode.workspace.getConfiguration('workbench').update(
     'colorTheme', picked.label, vscode.ConfigurationTarget.Global
   );
+  await recordThemeUse(context, picked.label);
   vscode.window.showInformationMessage(`Switched to: ${picked.label}`);
 }
 
@@ -1767,6 +1950,293 @@ async function cmdApplyCircadianTheme(context) {
   vscode.window.showInformationMessage('Circadian theme applied.');
 }
 
+async function getStudioThemes(context) {
+  const themes = [];
+  for (const entry of STATIC_THEMES) {
+    const themeJson = await readAnyThemeJsonByLabel(context, entry.label);
+    if (!themeJson) continue;
+    themes.push({
+      label: entry.label,
+      type: themeJson.type || (entry.description === 'vs-light' ? 'light' : 'dark'),
+      colors: themeJson.colors,
+      syntax: extractSyntaxColors(themeJson),
+      tokenColors: themeJson.tokenColors || [],
+      semanticTokenColors: themeJson.semanticTokenColors || {},
+      semanticHighlighting: themeJson.semanticHighlighting !== false,
+      mood: THEME_MOODS[entry.label],
+      custom: false,
+    });
+  }
+  for (const meta of getCustomThemes(context)) {
+    try {
+      const themeJson = JSON.parse(fs.readFileSync(themeFilePath(meta.fileName), 'utf8'));
+      themes.push({
+        label: meta.label,
+        type: meta.isDark ? 'dark' : 'light',
+        colors: themeJson.colors,
+        syntax: extractSyntaxColors(themeJson),
+        tokenColors: themeJson.tokenColors || [],
+        semanticTokenColors: themeJson.semanticTokenColors || {},
+        semanticHighlighting: themeJson.semanticHighlighting !== false,
+        mood: `Custom palette from ${meta.baseColor}`,
+        custom: true,
+      });
+    } catch (error) {
+      console.error(`[ForestAsh] Could not load custom theme "${meta.label}":`, error.message);
+    }
+  }
+  return themes;
+}
+
+async function saveStudioTheme(context, sourceLabel, overrides, suffix = 'Studio', document = {}) {
+  const source = await readAnyThemeJsonByLabel(context, sourceLabel);
+  if (!source) throw new Error(`Theme "${sourceLabel}" could not be loaded.`);
+  const themeJson = JSON.parse(JSON.stringify(source));
+  themeJson.colors = { ...(themeJson.colors || {}), ...overrides };
+  if (Array.isArray(document.tokenColors)) themeJson.tokenColors = document.tokenColors;
+  if (document.semanticTokenColors) themeJson.semanticTokenColors = document.semanticTokenColors;
+  if (typeof document.semanticHighlighting === 'boolean') themeJson.semanticHighlighting = document.semanticHighlighting;
+  const proposed = `${sourceLabel} ${suffix}`.slice(0, 80);
+  const customs = getCustomThemes(context);
+  const labelInput = await vscode.window.showInputBox({
+    title: 'Save Theme Studio palette',
+    prompt: 'Name for the new custom theme',
+    value: proposed,
+    validateInput: value => validateThemeName(value, [...customs, ...STATIC_THEMES]),
+  });
+  if (!labelInput) return null;
+  const label = labelInput.trim();
+  const validationError = validateThemeJson(themeJson);
+  if (validationError) throw new Error(validationError);
+  const timestamp = Date.now();
+  const safeId = toKebab(label) || `theme-${timestamp}`;
+  const fileName = `custom-studio-${timestamp}-${safeId}.json`;
+  themeJson.name = label;
+  themeJson.type = themeJson.type || 'dark';
+  fs.mkdirSync(customThemesDir(), { recursive: true });
+  fs.writeFileSync(themeFilePath(fileName), JSON.stringify(themeJson, null, 2), 'utf8');
+  const meta = {
+    label,
+    baseColor: themeJson.colors['textLink.foreground'] || '#4a9eff',
+    isDark: themeJson.type !== 'light',
+    variant: themeJson.type === 'light' ? 'light' : 'dark',
+    safeId,
+    fileName,
+    generatedAt: timestamp,
+  };
+  try {
+    await patchPackageJson(meta);
+    await saveCustomMeta(context, meta);
+  } catch (error) {
+    try { fs.unlinkSync(themeFilePath(fileName)); } catch (cleanupError) {
+      console.error('[ForestAsh] Studio rollback failed:', cleanupError.message);
+    }
+    throw error;
+  }
+  customThemesProvider?.refresh();
+  themePreviewProvider?.refresh();
+  return meta;
+}
+
+async function cmdThemeStudio(context) {
+  if (!themePreviewProvider) {
+    vscode.window.showErrorMessage('Theme Studio is not available yet.');
+    return;
+  }
+  await themePreviewProvider.showStudio();
+}
+
+async function cmdDiscardStudioChanges(context) {
+  const restored = await restoreStudioOverrides(context);
+  vscode.window.showInformationMessage(
+    restored
+      ? 'Theme Studio changes discarded.'
+      : 'Theme Studio has no live overrides to discard.'
+  );
+}
+
+async function cmdRemoveAllStudioOverrides(context) {
+  await removeAllStudioOverrides(context);
+  vscode.window.showInformationMessage('Theme Studio overrides removed.');
+}
+
+async function cmdImportPalette(context) {
+  const picked = await vscode.window.showOpenDialog({
+    canSelectMany: false,
+    filters: { 'Palette files': ['json', 'css', 'scss', 'txt'] },
+    openLabel: 'Import Palette',
+  });
+  if (!picked?.length) return;
+  try {
+    const text = Buffer.from(await vscode.workspace.fs.readFile(picked[0])).toString('utf8');
+    const parsed = parsePaletteText(text);
+    const error = validateThemeJson({ colors: parsed.colors, tokenColors: parsed.tokenColors || [] });
+    if (error) throw new Error(error);
+    const base = await readAnyThemeJsonByLabel(context, getActiveThemeLabel()) || { colors: {}, tokenColors: [] };
+    const merged = { ...base, colors: { ...base.colors, ...parsed.colors }, tokenColors: parsed.tokenColors?.length ? parsed.tokenColors : base.tokenColors };
+    const source = getActiveThemeLabel() || 'Forest Ash';
+    const saved = await saveStudioTheme(context, source, merged.colors, 'Imported');
+    if (saved) {
+      vscode.window.showInformationMessage(`Imported "${saved.label}". Reload to add it to the native picker.`);
+    }
+  } catch (error) {
+    vscode.window.showErrorMessage(`Palette import failed: ${error.message}`);
+  }
+}
+
+async function cmdAccessibilityReport(context) {
+  const label = getActiveThemeLabel();
+  const theme = await readAnyThemeJsonByLabel(context, label);
+  if (!theme) {
+    vscode.window.showErrorMessage('Could not read the active theme.');
+    return;
+  }
+  const bg = theme.colors?.['editor.background'] || '#1e1e1e';
+  const syntax = extractSyntaxColors(theme);
+  const rows = [
+    ['Editor text', theme.colors?.['editor.foreground'], bg],
+    ['Comments', syntax.comment, bg],
+    ['Keywords', syntax.keyword, bg],
+    ['Strings', syntax.string, bg],
+    ['Selection', theme.colors?.['editor.selectionBackground'], bg],
+    ['Errors', theme.colors?.['editorError.foreground'], bg],
+  ].filter(([, fg]) => fg).map(([name, fg, background]) =>
+    `${name}: ${chroma.contrast(fg, background).toFixed(2)}:1`
+  );
+  vscode.window.showInformationMessage(`Accessibility · ${label}\n${rows.join(' · ')}`);
+}
+
+async function cmdToggleFavorite(context, label = getActiveThemeLabel()) {
+  if (!label) return;
+  const favorites = getFavorites(context);
+  const next = favorites.includes(label)
+    ? favorites.filter(item => item !== label)
+    : [...favorites, label];
+  await context.globalState.update(FAVORITES_STATE_KEY, next);
+  vscode.window.showInformationMessage(`${next.includes(label) ? 'Added to' : 'Removed from'} favorites: ${label}`);
+}
+
+async function cmdBatchExportCustomThemes(context) {
+  const customs = getCustomThemes(context);
+  if (!customs.length) {
+    vscode.window.showInformationMessage('No custom themes to export.');
+    return;
+  }
+  const selected = await vscode.window.showQuickPick(customs.map(meta => ({
+    label: meta.label, description: `${meta.isDark ? 'Dark' : 'Light'} · ${meta.baseColor}`, meta,
+  })), { title: 'Select custom themes to export', canPickMany: true });
+  if (!selected?.length) return;
+  const toolPick = await vscode.window.showQuickPick(EXPORT_TARGETS.map(target => ({
+    label: target.label, description: target.description, target,
+  })), { title: 'Select export target' });
+  if (!toolPick) return;
+  const folder = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false, openLabel: 'Export themes here' });
+  if (!folder?.length) return;
+  let exported = 0;
+  for (const item of selected) {
+    try {
+      const themeJson = JSON.parse(fs.readFileSync(themeFilePath(item.meta.fileName), 'utf8'));
+      const palette = buildPalette(themeJson, item.meta);
+      const fileName = `${toKebab(item.meta.label)}${toolPick.target.ext}`;
+      await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(folder[0], fileName), Buffer.from(toolPick.target.export(palette), 'utf8'));
+      exported += 1;
+    } catch (error) {
+      console.error(`[ForestAsh] Batch export failed for ${item.meta.label}:`, error.message);
+    }
+  }
+  vscode.window.showInformationMessage(`Exported ${exported} of ${selected.length} custom themes.`);
+}
+
+async function cmdBackup(context) {
+  const uri = await vscode.window.showSaveDialog({ filters: { 'Forest Ash backup': ['json'] }, defaultUri: vscode.Uri.file(path.join(os.homedir(), 'forest-ash-backup.json')) });
+  if (!uri) return;
+  const settingKeys = [
+    'defaultVariant', 'lastBaseColor', 'showSwatchInStatusBar',
+    'workspaceThemes.enabled', 'reducedGlare.enabled', 'themeStudio.defaultSampleLanguage',
+    'focusMode.enabled', 'focusMode.dimOpacity', 'italicMode.enabled',
+    'highContrast.enabled', 'languageAccents', 'circadian.enabled',
+    'circadian.dayTheme', 'circadian.nightTheme', 'circadian.dayStart',
+    'circadian.nightStart', 'circadian.timezone', 'circadian.checkIntervalMinutes',
+    'themeOfWeek.enabled',
+  ];
+  const settings = Object.fromEntries(settingKeys.map(key => [
+    key, vscode.workspace.getConfiguration('forestAsh').get(key),
+  ]));
+  const payload = {
+    schemaVersion: 1,
+    createdAt: new Date().toISOString(),
+    themes: getCustomThemes(context).map(meta => ({
+      meta,
+      theme: fs.existsSync(themeFilePath(meta.fileName)) ? JSON.parse(fs.readFileSync(themeFilePath(meta.fileName), 'utf8')) : null,
+    })).filter(item => item.theme),
+    favorites: getFavorites(context),
+    recent: context.globalState.get(RECENT_STATE_KEY, []),
+    workspaceThemes: context.globalState.get(WORKSPACE_THEMES_KEY, {}),
+    settings,
+  };
+  await vscode.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(payload, null, 2), 'utf8'));
+  vscode.window.showInformationMessage(`Backed up ${payload.themes.length} custom themes.`);
+}
+
+async function cmdRestore(context) {
+  const picked = await vscode.window.showOpenDialog({ canSelectMany: false, filters: { 'Forest Ash backup': ['json'] } });
+  if (!picked?.length) return;
+  try {
+    const backup = JSON.parse(Buffer.from(await vscode.workspace.fs.readFile(picked[0])).toString('utf8'));
+    if (backup.schemaVersion !== 1 || !Array.isArray(backup.themes)) throw new Error('Unsupported backup format.');
+    for (const item of backup.themes) {
+      const error = validateThemeJson(item.theme);
+      if (error) throw new Error(`${item.meta?.label || 'Theme'}: ${error}`);
+      const labelError = validateThemeName(item.meta?.label, getCustomThemes(context));
+      if (labelError && !getCustomThemes(context).some(meta => meta.label === item.meta.label)) throw new Error(labelError);
+      const fileName = item.meta.fileName || `custom-restore-${Date.now()}-${toKebab(item.meta.label)}.json`;
+      fs.writeFileSync(themeFilePath(fileName), JSON.stringify({ ...item.theme, name: item.meta.label }, null, 2), 'utf8');
+      await patchPackageJson({ ...item.meta, fileName });
+      await saveCustomMeta(context, { ...item.meta, fileName });
+    }
+    await context.globalState.update(FAVORITES_STATE_KEY, Array.isArray(backup.favorites) ? backup.favorites : []);
+    await context.globalState.update(RECENT_STATE_KEY, Array.isArray(backup.recent) ? backup.recent : []);
+    await context.globalState.update(WORKSPACE_THEMES_KEY, backup.workspaceThemes || {});
+    for (const [key, value] of Object.entries(backup.settings || {})) {
+      await vscode.workspace.getConfiguration('forestAsh').update(key, value, vscode.ConfigurationTarget.Global);
+    }
+    customThemesProvider?.refresh();
+    vscode.window.showInformationMessage(`Restored ${backup.themes.length} custom themes. Reload to update the native picker.`);
+  } catch (error) {
+    vscode.window.showErrorMessage(`Restore failed: ${error.message}`);
+  }
+}
+
+function workspaceThemeKey() {
+  return vscode.workspace.workspaceFile?.toString()
+    || vscode.workspace.workspaceFolders?.map(folder => folder.uri.toString()).join('|')
+    || 'untitled';
+}
+
+async function applyWorkspaceTheme(context) {
+  const config = vscode.workspace.getConfiguration('forestAsh');
+  if (!config.get('workspaceThemes.enabled', false)) return;
+  const themes = context.globalState.get(WORKSPACE_THEMES_KEY, {});
+  const target = themes[workspaceThemeKey()];
+  if (!target || target === getActiveThemeLabel()) return;
+  const exists = (await listThemeEntries(context)).some(entry => entry.label === target);
+  if (exists) {
+    await vscode.workspace.getConfiguration('workbench').update(
+      'colorTheme', target, vscode.ConfigurationTarget.Workspace
+    );
+    await recordThemeUse(context, target);
+  }
+}
+
+async function cmdSetWorkspaceTheme(context) {
+  const active = getActiveThemeLabel();
+  if (!active) return;
+  const themes = context.globalState.get(WORKSPACE_THEMES_KEY, {});
+  themes[workspaceThemeKey()] = active;
+  await context.globalState.update(WORKSPACE_THEMES_KEY, themes);
+  vscode.window.showInformationMessage(`Workspace theme set to "${active}".`);
+}
+
 // ─── Theme Preview ────────────────────────────────────────────────────────────
 
 // ─── Theme Preview — sidebar webview ─────────────────────────────────────────
@@ -2044,6 +2514,11 @@ class ThemePreviewProvider {
   constructor(context) {
     this.context = context;
     this.view    = null;
+    this.studioPanel = null;
+    this.studioWebview = null;
+    this.studioHistory = [];
+    this.studioRedo = [];
+    this.studioDocument = null;
   }
 
   resolveWebviewView(view) {
@@ -2053,17 +2528,112 @@ class ThemePreviewProvider {
     // Immediate placeholder
     view.webview.html = buildSidebarPreviewHtml([], null);
 
-    view.webview.onDidReceiveMessage(async message => {
-      if (message.type === 'applyTheme' && message.label) {
+    view.webview.onDidReceiveMessage(message => this._handleStudioMessage(message));
+    this._load();
+  }
+
+  async _handleStudioMessage(message) {
+      if ((message.type === 'applyTheme' || message.type === 'apply') && message.label) {
         await vscode.workspace.getConfiguration('workbench').update(
           'colorTheme', message.label, vscode.ConfigurationTarget.Global
         );
-        // Refresh palette tiles after apply
+        await recordThemeUse(this.context, message.label);
         paletteViewProvider?.refresh();
+      } else if (message.type === 'copy' && message.value) {
+        await vscode.env.clipboard.writeText(message.value);
+      } else if (message.type === 'generate') {
+        await cmdGenerateTheme(this.context);
+        await this._load();
+      } else if (message.type === 'dismiss') {
+        await this._load();
+      } else if (message.type === 'save' && message.source && message.colors) {
+        try {
+          await saveStudioTheme(this.context, message.source, message.colors, 'Studio', message);
+          await this.showStudio();
+        } catch (error) {
+          vscode.window.showErrorMessage(`Could not save Studio theme: ${error.message}`);
+        }
+      } else if (message.type === 'setState' && message.source && message.colors) {
+        const next = {
+          source: message.source,
+          colors: { ...message.colors },
+          tokenColors: Array.isArray(message.tokenColors) ? message.tokenColors : [],
+          semanticTokenColors: { ...(message.semanticTokenColors || {}) },
+          semanticHighlighting: message.semanticHighlighting !== false,
+        };
+        const previous = this.studioDocument;
+        if (previous && JSON.stringify(previous) !== JSON.stringify(next)) {
+          this.studioHistory.push(previous);
+          if (this.studioHistory.length > 200) this.studioHistory.shift();
+          this.studioRedo = [];
+        }
+        this.studioDocument = next;
+        try {
+          await applyStudioOverrides(
+            this.context,
+            next.source,
+            next.colors,
+            next.tokenColors,
+            next.semanticTokenColors,
+            next.semanticHighlighting
+          );
+          await this.context.globalState.update(STUDIO_AUTOSAVE_KEY, next);
+        } catch (error) {
+          vscode.window.showErrorMessage(`Theme Studio live update failed: ${error.message}`);
+        }
+      } else if (message.type === 'undo' || message.type === 'redo') {
+        const source = message.type === 'undo' ? this.studioHistory : this.studioRedo;
+        const target = source.pop();
+        if (target && this.studioDocument) {
+          (message.type === 'undo' ? this.studioRedo : this.studioHistory).push(this.studioDocument);
+          this.studioDocument = target;
+          await applyStudioOverrides(this.context, target.source, target.colors, target.tokenColors, target.semanticTokenColors, target.semanticHighlighting);
+          this.studioWebview?.postMessage({ type: 'studioState', ...target });
+        }
+      } else if (message.type === 'discard') {
+        await cmdDiscardStudioChanges(this.context);
+        this.studioDocument = null;
+        this.studioHistory = [];
+        this.studioRedo = [];
+      } else if (message.type === 'panic') {
+        await cmdRemoveAllStudioOverrides(this.context);
+        this.studioDocument = null;
+        this.studioHistory = [];
+        this.studioRedo = [];
+      } else if (message.type === 'favorite' && message.label) {
+        await cmdToggleFavorite(this.context, message.label);
+      } else if (message.type === 'preset' && message.source && message.preset) {
+        try {
+          const source = await readAnyThemeJsonByLabel(this.context, message.source);
+          const transformed = applyPreset({ ...source, colors: { ...source.colors, ...message.colors } }, message.preset);
+          await saveStudioTheme(this.context, message.source, transformed.colors, message.preset);
+          await this.showStudio();
+        } catch (error) {
+          vscode.window.showErrorMessage(`Preset failed: ${error.message}`);
+        }
+      } else if (message.type === 'simulation' && message.source && message.mode) {
+        try {
+          const source = await readAnyThemeJsonByLabel(this.context, message.source);
+          const transformed = transformThemeForSimulation({ ...source, colors: { ...source.colors, ...message.colors } }, message.mode);
+          await saveStudioTheme(this.context, message.source, transformed.colors, message.mode);
+          await this.showStudio();
+        } catch (error) {
+          vscode.window.showErrorMessage(`Color simulation failed: ${error.message}`);
+        }
+      } else if (message.type === 'reduced-glare' && message.source) {
+        try {
+          const source = await readAnyThemeJsonByLabel(this.context, message.source);
+          const colors = Object.fromEntries(Object.entries({ ...source.colors, ...message.colors }).map(([key, value]) => {
+            try { return [key, chroma(value).set('hsl.s', '*0.65').hex()]; } catch (_) { return [key, value]; }
+          }));
+          await saveStudioTheme(this.context, message.source, colors, 'Reduced Glare');
+          await this.showStudio();
+        } catch (error) {
+          vscode.window.showErrorMessage(`Reduced-glare mode failed: ${error.message}`);
+        }
+      } else if (message.type === 'accessibility') {
+        await cmdAccessibilityReport(this.context);
       }
-    });
-
-    this._load();
   }
 
   async _load() {
@@ -2087,9 +2657,40 @@ class ThemePreviewProvider {
     this.view.webview.html = buildSidebarPreviewHtml(cards, activeLabel);
   }
 
+  async showStudio() {
+    if (!this.studioPanel) {
+      this.studioPanel = vscode.window.createWebviewPanel(
+        'forestAsh.themeStudio',
+        'Forest Ash Theme Studio',
+        vscode.ViewColumn.Beside,
+        { enableScripts: true, retainContextWhenHidden: true }
+      );
+      this.studioWebview = this.studioPanel.webview;
+      this.studioPanel.onDidDispose(() => {
+        this.studioPanel = null;
+        this.studioWebview = null;
+      }, null, []);
+      this.studioWebview.onDidReceiveMessage(message => this._handleStudioMessage(message));
+    }
+
+    const themes = await getStudioThemes(this.context);
+    this.studioPanel.webview.html = buildThemeStudioHtml(
+      themes,
+      getFavorites(this.context),
+      this.context.globalState.get(RECENT_STATE_KEY, [])
+    );
+    return true;
+  }
+
   async refresh() {
     if (!this.view?.webview) return;
     await this._load();
+  }
+
+  showThemeOfWeek(theme) {
+    if (!this.view?.webview) return false;
+    this.view.webview.html = buildThemeOfWeekHtml(theme);
+    return true;
   }
 }
 
@@ -2175,26 +2776,29 @@ async function cmdShowThemeOfWeek(context, force = false) {
   const now = Date.now();
   if (!force && state.lastShown && now - state.lastShown < 7 * 24 * 60 * 60 * 1000) return;
 
-  const labels = STATIC_THEMES.map(theme => theme.label);
-  const choices = labels.filter(label => label !== state.lastTheme);
-  const label = choices[Math.floor(Math.random() * choices.length)] || labels[0];
-  const mood = THEME_MOODS[label] || 'Forest Ash spotlight.';
+  const customs = getCustomThemes(context);
+  const candidates = [
+    ...STATIC_THEMES.map(theme => ({ label: theme.label, meta: null })),
+    ...customs.map(meta => ({ label: meta.label, meta })),
+  ];
+  const choices = candidates.filter(candidate => candidate.label !== state.lastTheme);
+  const selected = choices[Math.floor(Math.random() * choices.length)] || candidates[0];
+  const label = selected.label;
+  const mood = THEME_MOODS[label] ||
+    (selected.meta
+      ? `A custom Forest Ash palette built from ${selected.meta.baseColor}.`
+      : 'Forest Ash spotlight.');
 
   await context.globalState.update(THEME_OF_WEEK_STATE_KEY, {
     lastShown: now,
     lastTheme: label,
   });
 
-  const panel = vscode.window.createWebviewPanel(
-    'forestAshThemeOfWeek',
-    'Forest Ash Theme of the Week',
-    vscode.ViewColumn.One,
-    { enableScripts: true }
-  );
-
   let themeJson = null;
   try {
-    themeJson = await readAnyThemeJsonByLabel(context, label);
+    themeJson = selected.meta
+      ? JSON.parse(fs.readFileSync(themeFilePath(selected.meta.fileName), 'utf8'))
+      : await readAnyThemeJsonByLabel(context, label);
   } catch (_) {}
 
   const colors = themeJson?.colors || {};
@@ -2204,27 +2808,58 @@ async function cmdShowThemeOfWeek(context, force = false) {
     type = isLightColor(colors['editor.background']) ? 'light' : 'dark';
   }
 
-  const iconUri = panel.webview.asWebviewUri(
-    vscode.Uri.joinPath(context.extensionUri, 'resources', 'icon.png')
-  );
-
-  panel.webview.html = buildThemeOfWeekHtml({
+  const theme = {
     label,
     mood,
     colors,
     syntax,
     type,
-    icon: iconUri.toString(),
-  });
-  panel.webview.onDidReceiveMessage(async message => {
-    if (message.type === 'applyTheme' && message.label) {
-      await vscode.workspace.getConfiguration('workbench').update(
-        'colorTheme',
-        message.label,
-        vscode.ConfigurationTarget.Global
-      );
-    }
-  });
+    isCustom: Boolean(selected.meta),
+  };
+
+  showThemeOfWeekPanel(context, theme);
+}
+
+function showThemeOfWeekPanel(context, theme) {
+  if (themeOfWeekPanel) {
+    themeOfWeekPanel.reveal(vscode.ViewColumn.Active, false);
+  } else {
+    themeOfWeekPanel = vscode.window.createWebviewPanel(
+      'forestAsh.themeOfWeek',
+      'Forest Ash · Theme of the Week',
+      { viewColumn: vscode.ViewColumn.Active, preserveFocus: false },
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        enableFindWidget: false,
+      }
+    );
+    themeOfWeekPanel.onDidDispose(() => {
+      themeOfWeekPanel = null;
+    }, null, context.subscriptions);
+    themeOfWeekPanel.webview.onDidReceiveMessage(async message => {
+      try {
+        if (message.type === 'applyTheme' && message.label) {
+          await vscode.workspace.getConfiguration('workbench').update(
+            'colorTheme', message.label, vscode.ConfigurationTarget.Global
+          );
+          await recordThemeUse(context, message.label);
+          themeOfWeekPanel?.webview.postMessage({ type: 'toast', message: `Applied: ${message.label}` });
+        } else if (message.type === 'generate') {
+          await cmdGenerateTheme(context);
+        } else if (message.type === 'copy' && message.value) {
+          await vscode.env.clipboard.writeText(message.value);
+          themeOfWeekPanel?.webview.postMessage({ type: 'toast', message: 'Copied color to clipboard' });
+        } else if (message.type === 'dismiss') {
+          themeOfWeekPanel?.dispose();
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(`Theme of the Week failed: ${error.message}`);
+      }
+    }, null, context.subscriptions);
+  }
+  themeOfWeekPanel.webview.html = buildThemeOfWeekHtml(theme);
+  themeOfWeekPanel.reveal(vscode.ViewColumn.Active, false);
 }
 
 // ─── Custom Theme Sharing ────────────────────────────────────────────────────
@@ -2347,16 +2982,19 @@ async function cmdImportCustomTheme(context) {
     return;
   }
 
-  if (!themeJson?.colors || !themeJson?.tokenColors) {
-    vscode.window.showErrorMessage('Theme JSON missing colors or tokenColors.');
+  const validationError = validateThemeJson(themeJson);
+  if (validationError) {
+    vscode.window.showErrorMessage(`Invalid theme JSON: ${validationError}`);
     return;
   }
 
   const proposedName = themeJson.name || 'Forest Ash Custom';
+  const existingThemes = [...getCustomThemes(context), ...STATIC_THEMES];
   const label = await vscode.window.showInputBox({
     title: 'Import Custom Theme',
     prompt: 'Theme name',
     value: proposedName,
+    validateInput: value => validateThemeName(value, existingThemes),
   });
   if (!label) return;
 
@@ -2392,8 +3030,16 @@ async function cmdImportCustomTheme(context) {
     generatedAt: Date.now(),
   };
 
-  patchPackageJson(meta);
-  await saveCustomMeta(context, meta);
+  try {
+    await patchPackageJson(meta);
+    await saveCustomMeta(context, meta);
+  } catch (error) {
+    try { fs.unlinkSync(absPath); } catch (cleanupError) {
+      console.error('[ForestAsh] Import rollback failed:', cleanupError.message);
+    }
+    vscode.window.showErrorMessage(`Could not register imported theme: ${error.message}`);
+    return;
+  }
   customThemesProvider?.refresh();
 
   const action = await vscode.window.showInformationMessage(
@@ -2656,7 +3302,7 @@ async function cmdRenameCustomTheme(context) {
 
   // Update package.json
   unpatchPackageJson(oldMeta.label);
-  patchPackageJson(newMeta);
+  await patchPackageJson(newMeta);
 
   // Update state
   const idx = customs.findIndex(t => t.label === oldMeta.label);
@@ -2762,6 +3408,7 @@ async function cmdRandomTheme(context) {
   await vscode.workspace.getConfiguration('workbench').update(
     'colorTheme', chosen, vscode.ConfigurationTarget.Global
   );
+  await recordThemeUse(context, chosen);
   const mood = THEME_MOODS[chosen];
   vscode.window.showInformationMessage(
     mood ? `🎲 ${chosen} — ${mood}` : `🎲 Applied: ${chosen}`
@@ -2931,6 +3578,26 @@ function activate(context) {
       'forestAsh.randomTheme',          () => cmdRandomTheme(context)),
     vscode.commands.registerCommand(
       'forestAsh.exportPaletteScss',    () => cmdExportPaletteScss(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.themeStudio',          () => cmdThemeStudio(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.themeStudioDiscard',   () => cmdDiscardStudioChanges(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.themeStudioRemoveOverrides', () => cmdRemoveAllStudioOverrides(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.importPalette',        () => cmdImportPalette(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.batchExportCustomThemes', () => cmdBatchExportCustomThemes(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.backup',               () => cmdBackup(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.restore',              () => cmdRestore(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.accessibilityReport',  () => cmdAccessibilityReport(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.toggleFavorite',       () => cmdToggleFavorite(context)),
+    vscode.commands.registerCommand(
+      'forestAsh.setWorkspaceTheme',    () => cmdSetWorkspaceTheme(context)),
   );
 
   applyLanguageAccents(context).catch(() => undefined);
@@ -2950,6 +3617,9 @@ function activate(context) {
   }
 
   startCircadianScheduler(context);
+  applyWorkspaceTheme(context).catch(error => {
+    console.error('[ForestAsh] workspace theme apply failed:', error.message);
+  });
   cmdShowThemeOfWeek(context).catch(() => undefined);
 
   context.subscriptions.push(
@@ -3010,6 +3680,10 @@ function activate(context) {
         customThemesProvider?.refresh();
       }
     })
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeWorkspaceFolders(() => applyWorkspaceTheme(context))
   );
 }
 

@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.3] - 2026-11-06
+
+### New Features
+
+- Theme Studio now applies scoped workbench, TextMate, and semantic-token
+  overrides live while editing, with throttled updates and a visible live
+  status indicator.
+- Completely redesigned the Theme of the Week experience with a spacious
+  editor-area spotlight layout, stronger visual hierarchy, responsive palette
+  cards, richer editor preview, and clearer primary actions.
+- Added TextMate token editing, semantic highlighting toggle, bounded undo/redo,
+  autosave snapshots, discard, and panic removal of all Studio overrides.
+- Added Theme Studio with live color editing, syntax previews, presets, search
+  and filters, favorites, recent themes, contrast reporting, simulations, and
+  reduced-glare mode.
+- Added palette import, batch custom-theme export, complete backup/restore, and
+  workspace-specific theme mappings.
+- Theme of the Week now opens as a focused, dismissible editor-area overlay
+  panel instead of rendering inside the Theme Preview sidebar.
+- Weekly recommendations include saved custom themes as well as built-in
+  palettes.
+- Added a direct **Generate Custom Theme** action to the weekly spotlight.
+
+### Bug Fixes
+
+- Theme generation now remembers the last accent color and uses the configured
+  default variant when opening the generator.
+- Custom theme names are checked case-insensitively and limited to a safe,
+  readable length.
+- Custom theme registration writes are awaited so a failed package update is
+  reported instead of appearing to succeed.
+- Weekly palette swatches can now be copied to the clipboard.
+
+### Documentation
+
+- Updated the Theme of the Week and custom generation documentation.
+
+## [1.5.2] - 2026-09-07
+
+### Changed
+
+- Bumped the extension and package metadata version to `1.5.2`.
+- Updated current version references in the README and extension entry points as
+  part of this pull request.
+- Adds Helix editor (.toml) as a new export target in the multi-tool export engine. Users can export Forest Ash themes to ~/.config/helix/ themes/ and activate via config.toml.
+
+
 ## [1.5.0] - 2026-07-19
 
 ### New Features

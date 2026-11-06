@@ -47,7 +47,7 @@ This extension includes 21 hand-crafted themes plus unlimited custom themes you 
 
 ---
 
-## 🌍 Multi-Tool Export (v1.5.0)
+## 🌍 Multi-Tool Export (v1.5.2)
 
 Take any Forest Ash palette — built-in or custom-generated — and export it for your other tools with a single command.
 
@@ -114,6 +114,32 @@ Contrast and readability are preserved automatically for both dark and light var
 
 ---
 
+## Theme Studio
+
+Open `Forest Ash: Open Theme Studio` for a live editor tab with background,
+foreground, accent, selection, and line-number controls. Studio also includes:
+
+The Studio opens beside your current editor like a normal VS Code tab, making
+long editing sessions easier. You can launch it from the command palette or
+from the **Forest Ash** Activity Bar: open **Theme Preview**, then click the
+paintbrush button in the view header. The Studio layout adapts from a
+three-column desktop workspace to a stacked, touch-friendly mobile-width
+layout.
+
+- Calm, high-contrast, OLED, warm-night, paper-light, and color-blind-safe presets
+- JavaScript, Python, TypeScript, JSON, Markdown, and terminal previews
+- Theme search, dark/light and custom/built-in filters, favorites, and recents
+- WCAG contrast reporting, color-blind simulation, and reduced-glare preview
+- Live editor overrides for workbench colors, TextMate rules, and semantic
+  tokens, with undo/redo and safe discard
+- Palette import from JSON, CSS variables, SCSS, and Tailwind-style variables
+- Batch export of custom themes and one-file backup/restore of themes and settings
+
+Use `Forest Ash: Set Workspace Theme` to associate a theme with the current
+workspace. The mapping is applied automatically when the workspace opens.
+
+---
+
 ## Available Commands
 
 | Command | Description |
@@ -140,18 +166,27 @@ Contrast and readability are preserved automatically for both dark and light var
 | `Forest Ash: Import Custom Theme` | Import a custom theme JSON file into Forest Ash |
 | `Forest Ash: Apply Circadian Theme Now` | Apply the correct day/night theme right now |
 | `Forest Ash: Theme of the Week` | Show the weekly theme spotlight panel |
+| `Forest Ash: Open Theme Studio` | Edit, preview, validate, and save themes |
+| `Forest Ash: Import Palette` | Create a custom theme from a palette file |
+| `Forest Ash: Export Custom Themes in Batch` | Export selected custom themes |
+| `Forest Ash: Backup Themes and Settings` | Save themes, metadata, mappings, and settings |
+| `Forest Ash: Restore Themes and Settings` | Restore a validated backup with rollback on failure |
+| `Forest Ash: Accessibility Report` | Show contrast ratios for the active theme |
+| `Forest Ash: Set Workspace Theme` | Map the active theme to this workspace |
+| `Forest Ash: Discard Theme Studio Changes` | Restore customizations from before live editing |
+| `Forest Ash: Remove Theme Studio Overrides` | Panic-reset all Theme Studio overrides |
 
 ---
 
 ## High Impact Features
 
-### Status Bar Swatch (v1.5.0 fix)
+### Status Bar Swatch (v1.5.2 fix)
 
 When a Forest Ash theme is active, the status bar shows a `⬤ ThemeName` indicator. Click it to open the Quick Theme Picker instantly.
 
 - Setting: `forestAsh.showSwatchInStatusBar` (default: `true`)
 
-### Quick Picker Mood Descriptions (v1.5.0 fix)
+### Quick Picker Mood Descriptions (v1.5.2 fix)
 
 The Quick Theme Picker now shows the mood/atmosphere description for every built-in theme:
 
@@ -226,10 +261,15 @@ into the share folder with a PR note ready on your clipboard.
 ### Theme of the Week
 
 Once per week, Forest Ash surfaces a hand-picked theme with a short mood description,
-plus a live preview, palette swatches, and syntax token legend.
+plus a live preview, palette swatches, and syntax token legend. It opens as a
+full editor-area overlay panel, keeping the weekly pick out of the Theme Preview
+sidebar and focused in the main VS Code workspace.
+Saved custom themes can also be selected as weekly recommendations.
 
 - Command: `Forest Ash: Theme of the Week`
 - Setting: `forestAsh.themeOfWeek.enabled`
+- Use **Generate Custom Theme** in the spotlight to create a named custom
+  palette without leaving the overlay panel.
 
 > **Note:** Advanced commands (Focus Mode, preview, export, import) run in the desktop app. The web version focuses on theme browsing and switching.
 
@@ -276,7 +316,7 @@ Generated themes are saved inside the extension's `themes/custom/` folder and re
 | `name` | `forest-ash-theme` |
 | `displayName` | `Forest Ash Theme` |
 | `publisher` | `NK2552003` |
-| `version` | `1.5.0` |
+| `version` | `1.5.3` |
 | `engines.vscode` | `^1.70.0` |
 
 ---
@@ -301,7 +341,7 @@ forest-ash-theme/
 │   ├── extension.js          # desktop entry point, commands
 │   ├── extension-web.js      # web entry point
 │   ├── themeGenerator.js     # dynamic palette + theme JSON builder
-│   ├── themeExporter.js      # multi-tool export engine (v1.5.0)
+│   ├── themeExporter.js      # multi-tool export engine (v1.5.2)
 │   ├── themeReading.js       # shared theme JSON loader
 │   └── themeWebviews.js      # preview/palette webview helpers
 ├── themes/
@@ -559,29 +599,46 @@ npm run publish      # publish to VS Code Marketplace
 ## Repository Structure
 
 ```
-forest-ash-theme/
-├── extension.js              # extension entry point, all commands
-├── package.json              # manifest, contributes.themes, commands
-├── src/
-│   ├── extension.js          # desktop entry point, commands
-│   ├── extension-web.js      # web entry point
-│   ├── themeGenerator.js     # dynamic palette + theme JSON builder
-│   ├── themeReading.js       # shared theme JSON loader
-│   └── themeWebviews.js      # preview/palette webview helpers
-├── themes/
-│   ├── *.json                # 21 hand-crafted static themes
-│   └── custom/               # runtime-generated user themes (git-ignored)
-│       └── .gitkeep
-├── docs/
-│   └── 1.4.0-features.md      # feature walkthrough for 1.4.0
-├── share/
-│   └── README.md              # community theme submissions
-├── resources/
-│   ├── icon.png
-│   ├── Preview.png
+├── CHANGELOG.md
+├── CODE_OF_CONDUCT.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── README.md
+├── SECURITY.md
+├── docs
+│   └── features-how-it-works.md
+├── exports
+│   ├── alacritty
+│   ├── iterm2
+│   ├── jetbrains
+│   ├── neovim
+│   ├── sublime
+│   ├── tmux
+│   ├── warp
+│   ├── windows-terminal
+│   └── zed
+├── package-lock.json
+├── package.json
+├── resources
 │   ├── dark.png
+│   ├── demo.gif
+│   ├── icon.png
+│   ├── icon.svg
 │   └── light.png
-└── README.md
+├── share
+│   └── README.md
+├── src
+│   ├── extension-web.js
+│   ├── extension.js
+│   ├── themeExporter.js
+│   ├── themeGenerator.js
+│   ├── themeReading.js
+│   ├── themeWebviews.js
+│   └── themesList.js
+└── themes
+    ├── custom
+
+17 directories, 234 files
 ```
 
 ---
