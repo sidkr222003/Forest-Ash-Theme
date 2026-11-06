@@ -68,11 +68,18 @@ A step-by-step wizard:
 | **Alacritty** | `.toml` | Paste into `alacritty.toml` or use `general.import` |
 | **Zed** | `.json` | `~/.config/zed/themes/` then `"theme": "Forest Ash"` |
 | **tmux** | `.conf` | `source-file` in your `~/.tmux.conf` |
+| **Helix Editor** | `.toml` | `~/.config/helix/themes/` then `theme = "forest-ash"` in `~/.config/helix/config.toml` |
 | **Warp Terminal** | `.yaml` | `~/.warp/themes/` then select in Appearance → Themes |
 
-### Command: `Forest Ash: Export All Themes for External Tool`
+### Exporting to Helix Editor
 
-Batch-exports all 21 built-in themes for a chosen tool into a single folder. Perfect for creating a themed tool suite.
+Run `Forest Ash: Export Theme for External Tool`, choose **Helix Editor (.toml)**, and save the file to `~/.config/helix/themes/forest-ash.toml`. Then add or update this line in `~/.config/helix/config.toml`:
+
+```toml
+theme = "forest-ash"
+```
+
+To export all 21 built-in themes as a Helix theme pack, use `Forest Ash: Export All Themes for External Tool` and choose **Helix Editor**. Each theme is saved as a separate `.toml` file inside the chosen folder.
 
 ---
 
