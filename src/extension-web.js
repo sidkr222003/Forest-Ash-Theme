@@ -56,6 +56,16 @@ function cmdRenameCustomTheme()    { return showDesktopOnly('Rename custom theme
 function cmdDuplicateCustomTheme() { return showDesktopOnly('Duplicate custom theme'); }
 function cmdRandomTheme()          { return showDesktopOnly('Surprise Me (random theme)'); }
 function cmdExportPaletteScss()    { return showDesktopOnly('Export palette as SCSS'); }
+function cmdThemeStudio()          { return showDesktopOnly('Theme Studio'); }
+function cmdThemeStudioDiscard()   { return showDesktopOnly('Theme Studio discard'); }
+function cmdThemeStudioRemoveOverrides() { return showDesktopOnly('Theme Studio override removal'); }
+function cmdImportPalette()        { return showDesktopOnly('Palette import'); }
+function cmdBatchExportCustomThemes() { return showDesktopOnly('Batch custom theme export'); }
+function cmdBackup()               { return showDesktopOnly('Theme backup'); }
+function cmdRestore()              { return showDesktopOnly('Theme restore'); }
+function cmdAccessibilityReport()  { return showDesktopOnly('Accessibility report'); }
+function cmdToggleFavorite()       { return showDesktopOnly('Theme favorites'); }
+function cmdSetWorkspaceTheme()    { return showDesktopOnly('Workspace-specific themes'); }
 
 // ─── activate / deactivate ────────────────────────────────────────────────────
 
@@ -84,6 +94,16 @@ function activate(context) {
     vscode.commands.registerCommand('forestAsh.duplicateCustomTheme', cmdDuplicateCustomTheme),
     vscode.commands.registerCommand('forestAsh.randomTheme',          cmdRandomTheme),
     vscode.commands.registerCommand('forestAsh.exportPaletteScss',    cmdExportPaletteScss),
+    vscode.commands.registerCommand('forestAsh.themeStudio',           cmdThemeStudio),
+    vscode.commands.registerCommand('forestAsh.themeStudioDiscard',    cmdThemeStudioDiscard),
+    vscode.commands.registerCommand('forestAsh.themeStudioRemoveOverrides', cmdThemeStudioRemoveOverrides),
+    vscode.commands.registerCommand('forestAsh.importPalette',         cmdImportPalette),
+    vscode.commands.registerCommand('forestAsh.batchExportCustomThemes', cmdBatchExportCustomThemes),
+    vscode.commands.registerCommand('forestAsh.backup',                cmdBackup),
+    vscode.commands.registerCommand('forestAsh.restore',               cmdRestore),
+    vscode.commands.registerCommand('forestAsh.accessibilityReport',   cmdAccessibilityReport),
+    vscode.commands.registerCommand('forestAsh.toggleFavorite',         cmdToggleFavorite),
+    vscode.commands.registerCommand('forestAsh.setWorkspaceTheme',      cmdSetWorkspaceTheme),
   );
 }
 

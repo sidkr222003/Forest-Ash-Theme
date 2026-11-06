@@ -2,6 +2,37 @@
 
 This document explains how each major Forest Ash feature works under the hood, plus the related command or setting.
 
+## Theme Studio
+
+Theme Studio loads built-in and saved custom theme JSON into a nonce-protected
+sidebar webview. Color controls update a local preview immediately; saving
+passes the validated theme through the existing custom-theme registration path.
+Presets, color-blind simulations, and reduced-glare mode transform colors before
+the same validation and save flow. WCAG metrics are calculated for editor text,
+comments, keywords, selections, and diagnostics.
+
+While editing, Studio writes only a theme-scoped entry to
+`workbench.colorCustomizations`, `editor.tokenColorCustomizations`, and
+`editor.semanticTokenColorCustomizations`. Writes are coalesced during color
+dragging. The first write snapshots the user's existing customization objects;
+Discard restores that snapshot, while Remove All Overrides provides a panic
+reset. Up to 200 document states are retained for undo/redo and the current
+working document is autosaved in extension global state.
+
+Controls:
+- Command: Forest Ash: Open Theme Studio
+- Commands: Discard Theme Studio Changes, Remove Theme Studio Overrides
+- Commands: Import Palette, Export Custom Themes in Batch, Accessibility Report
+- Settings: forestAsh.reducedGlare.enabled, forestAsh.workspaceThemes.enabled
+
+## Backup, Restore, and Workspace Themes
+
+Backups are versioned JSON documents containing custom themes, favorites,
+recent-theme history, workspace mappings, and Forest Ash settings. Restore
+validates the complete payload before writing and rolls back global metadata if
+an import fails. Workspace mappings use workspace or folder URIs and are
+applied through `workbench.colorTheme` when the workspace activates.
+
 ## Focus Mode / Zen Palette
 
 How it works:
@@ -98,6 +129,12 @@ Controls:
 - Commands: Forest Ash: Export Custom Theme, Forest Ash: Import Custom Theme
 
 ## Theme of the Week
+
+The weekly pick is rendered in a dedicated editor-area WebviewPanel, not in the
+Theme Preview sidebar. It takes focus when opened, uses the full available
+workspace area for the polished spotlight card, and can be dismissed without
+changing the active editor. Applying a theme, copying a swatch, and generating a
+custom theme are handled by the extension host.
 
 How it works:
 - Once per week, the extension picks a random built-in theme and shows a short mood description.

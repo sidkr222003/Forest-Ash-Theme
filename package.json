@@ -2,7 +2,7 @@
   "name": "forest-ash-theme-vscode",
   "displayName": "Forest Ash Theme",
   "description": "21 themes, infinite possibilities, zero cost - A collection of dark and light, eye-friendly VS Code themes inspired by forest ash textures and anime palettes. Features dynamic custom theme generation and multi-tool export to JetBrains, Neovim, Sublime Text, Windows Terminal, iTerm2, Alacritty, Zed, tmux, and Warp.",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "publisher": "NK2552003",
   "engines": {
     "vscode": "^1.70.0"
@@ -46,6 +46,7 @@
   "main": "./src/extension.js",
   "browser": "./src/extension-web.js",
   "scripts": {
+    "test": "node --test test/*.test.js",
     "package": "vsce package",
     "publish": "vsce publish",
     "prepublishOnly": "echo \"Skipping prepublish hook to avoid recursive npm run package\""
@@ -81,6 +82,16 @@
     "onCommand:forestAsh.duplicateCustomTheme",
     "onCommand:forestAsh.randomTheme",
     "onCommand:forestAsh.exportPaletteScss"
+    ,"onCommand:forestAsh.themeStudio"
+    ,"onCommand:forestAsh.themeStudioDiscard"
+    ,"onCommand:forestAsh.themeStudioRemoveOverrides"
+    ,"onCommand:forestAsh.importPalette"
+    ,"onCommand:forestAsh.batchExportCustomThemes"
+    ,"onCommand:forestAsh.backup"
+    ,"onCommand:forestAsh.restore"
+    ,"onCommand:forestAsh.accessibilityReport"
+    ,"onCommand:forestAsh.toggleFavorite"
+    ,"onCommand:forestAsh.setWorkspaceTheme"
   ],
   "contributes": {
     "commands": [
@@ -193,6 +204,56 @@
         "command": "forestAsh.exportPaletteScss",
         "title": "Forest Ash: Export Palette as SCSS",
         "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.themeStudio",
+        "title": "Forest Ash: Open Theme Studio",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.themeStudioDiscard",
+        "title": "Forest Ash: Discard Theme Studio Changes",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.themeStudioRemoveOverrides",
+        "title": "Forest Ash: Remove Theme Studio Overrides",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.importPalette",
+        "title": "Forest Ash: Import Color Palette",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.batchExportCustomThemes",
+        "title": "Forest Ash: Batch Export Custom Themes",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.backup",
+        "title": "Forest Ash: Backup Themes and Settings",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.restore",
+        "title": "Forest Ash: Restore Themes and Settings",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.accessibilityReport",
+        "title": "Forest Ash: Accessibility Report",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.toggleFavorite",
+        "title": "Forest Ash: Toggle Favorite Theme",
+        "category": "Forest Ash"
+      },
+      {
+        "command": "forestAsh.setWorkspaceTheme",
+        "title": "Forest Ash: Set Workspace Theme",
+        "category": "Forest Ash"
       }
     ],
     "viewsContainers": {
@@ -237,6 +298,14 @@
       }
     ],
     "menus": {
+      "views/title": [
+        {
+          "command": "forestAsh.themeStudio",
+          "when": "view == forestAsh.themePreviewView && !isWeb",
+          "group": "navigation@1",
+          "icon": "$(paintcan)"
+        }
+      ],
       "editor/context": [
         {
           "submenu": "forestAsh.context",
@@ -359,6 +428,46 @@
           "command": "forestAsh.duplicateCustomTheme",
           "group": "4_custom",
           "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.themeStudio",
+          "group": "1_core",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.importPalette",
+          "group": "4_custom",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.batchExportCustomThemes",
+          "group": "5_export",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.backup",
+          "group": "6_maintenance",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.restore",
+          "group": "6_maintenance",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.accessibilityReport",
+          "group": "2_modes",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.toggleFavorite",
+          "group": "1_core",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.setWorkspaceTheme",
+          "group": "3_automation",
+          "when": "!isWeb"
         }
       ],
       "forestAsh.customTheme.context": [
@@ -469,6 +578,38 @@
         {
           "command": "forestAsh.exportPaletteScss",
           "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.themeStudio",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.importPalette",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.batchExportCustomThemes",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.backup",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.restore",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.accessibilityReport",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.toggleFavorite",
+          "when": "!isWeb"
+        },
+        {
+          "command": "forestAsh.setWorkspaceTheme",
+          "when": "!isWeb"
         }
       ]
     },
@@ -571,6 +712,22 @@
           "type": "string",
           "default": "",
           "description": "ID of the last tool used in the Export for External Tool command (for pre-selection)."
+        },
+        "forestAsh.workspaceThemes.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically apply the saved Forest Ash theme for each workspace."
+        },
+        "forestAsh.reducedGlare.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use reduced-saturation colors when creating a reduced-glare Studio theme."
+        },
+        "forestAsh.themeStudio.defaultSampleLanguage": {
+          "type": "string",
+          "enum": ["javascript", "python", "typescript", "json", "markdown", "terminal"],
+          "default": "javascript",
+          "description": "Default syntax sample shown in Theme Studio."
         }
       }
     },
